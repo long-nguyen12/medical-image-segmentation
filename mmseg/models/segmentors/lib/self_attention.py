@@ -8,7 +8,7 @@ Created on Tue Aug 10 17:15:44 2021
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lib.conv_layer import Conv
+from mmseg.models.segmentors.lib.conv_layer import Conv
 import math
 
 class self_attn(nn.Module):

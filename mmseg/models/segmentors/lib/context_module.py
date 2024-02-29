@@ -7,7 +7,7 @@ Created on Tue Aug 10 17:18:49 2021
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lib.conv_layer import Conv, BNPReLU
+from mmseg.models.segmentors.lib.conv_layer import Conv, BNPReLU
 import math
 
 class CFPModule(nn.Module):
