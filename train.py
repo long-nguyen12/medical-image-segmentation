@@ -238,7 +238,7 @@ def train(train_loader, model, optimizer, epoch, lr_scheduler, args):
                     )
                 )
 
-    ckpt_path = save_path + "last_transforms_b3.pth"
+    ckpt_path = save_path + "checkpoint.pth"
     print("[Saving Checkpoint:]", ckpt_path)
     checkpoint = {
         "epoch": epoch + 1,
@@ -267,7 +267,7 @@ if __name__ == "__main__":
         default="./data/data/TrainDataset",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="UniFormer-GC")
+    parser.add_argument("--train_save", type=str, default="UniFormer-PAN")
     parser.add_argument(
         "--resume_path",
         type=str,
@@ -284,8 +284,8 @@ if __name__ == "__main__":
 
     train_img_paths = []
     train_mask_paths = []
-    train_img_paths = glob("{}/images/*".format(args.train_path))
-    train_mask_paths = glob("{}/masks/*".format(args.train_path))
+    train_img_paths = glob("{}/image/*".format(args.train_path))
+    train_mask_paths = glob("{}/mask/*".format(args.train_path))
     train_img_paths.sort()
     train_mask_paths.sort()
     
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     total_step = len(train_loader)
     
     model = UNet(
-        backbone=dict(type="mit_b3",
+        backbone=dict(type="UniFormer",
             # embed_dims=[64, 128, 320, 512],
             # depths=[3, 3, 12, 3],
             # drop_path_rate=0.1
@@ -330,7 +330,7 @@ if __name__ == "__main__":
         auxiliary_head=None,
         train_cfg=dict(),
         test_cfg=dict(mode="whole"),
-        pretrained="pretrained/mit_b3.pth",
+        pretrained="pretrained/uniformer_small_in1k.pth",
     ).cuda()
 
     # ---- flops and params ----
@@ -346,12 +346,7 @@ if __name__ == "__main__":
     # lr_scheduler = WarmupPolyLR(optimizer, 0.6, 20 * total_step, 10, 0.1)
 
     start_epoch = 1
-    # if args.resume_path != "":
-    #     checkpoint = torch.load(args.resume_path)
-    #     start_epoch = checkpoint["epoch"]
-    #     model.load_state_dict(checkpoint["state_dict"])
-    #     lr_scheduler.load_state_dict(checkpoint["scheduler"])
-    #     optimizer.load_state_dict(checkpoint["optimizer"])
+    
     eps = 20
     print("#" * 20, "Start Training", "#" * 20)
     for epoch in range(start_epoch, eps + 1):

@@ -161,7 +161,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = UNet(
-        backbone=dict(type="mit_b2",
+        backbone=dict(type="UniFormer",
             # embed_dims=[64, 128, 320, 512],
             # depths=[3, 3, 12, 3],
             # drop_path_rate=0.1
@@ -183,9 +183,9 @@ if __name__ == "__main__":
         auxiliary_head=None,
         train_cfg=dict(),
         test_cfg=dict(mode="whole"),
-        pretrained="pretrained/mit_b2.pth",
+        pretrained="pretrained/uniformer_small_in1k.pth",
     ).cuda()
-    checkpoint = torch.load('snapshots/UniFormer-GC/last_transforms.pth', map_location='cpu')
+    checkpoint = torch.load('snapshots/UniFormer-PAN/checkpoint.pth', map_location='cpu')
     model.load_state_dict(checkpoint["state_dict"], strict=True)
 
     ds = ["CVC-300", "CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir"]
