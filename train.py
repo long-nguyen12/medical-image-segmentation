@@ -26,7 +26,7 @@ from mmseg import __version__
 from mmseg.models.segmentors import UniPolyp as UNet
 
 from schedulers import WarmupPolyLR
-
+import logging
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -213,7 +213,7 @@ def train(train_loader, model, optimizer, epoch, lr_scheduler, args):
 
             # ---- train visualization ----
             if i == total_step:
-                print(
+                logging.info(
                     "{} Training Epoch [{:03d}/{:03d}], "
                     "[loss: {:0.4f}, dice: {:0.4f}, iou: {:0.4f}]".format(
                         datetime.now(),
@@ -226,7 +226,7 @@ def train(train_loader, model, optimizer, epoch, lr_scheduler, args):
                 )
 
     ckpt_path = save_path + "checkpoint.pth"
-    print("[Saving Checkpoint:]", ckpt_path)
+    logging.info("[Saving Checkpoint:]", ckpt_path)
     checkpoint = {
         "epoch": epoch + 1,
         "state_dict": model.state_dict(),
@@ -336,6 +336,6 @@ if __name__ == "__main__":
     start_epoch = 1
 
     eps = 20
-    print("#" * 20, "Start Training", "#" * 20)
+    logging.info("#" * 20, "Start Training", "#" * 20)
     for epoch in range(start_epoch, eps + 1):
         train(train_loader, model, optimizer, epoch, lr_scheduler, args)
