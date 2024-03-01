@@ -189,8 +189,8 @@ if __name__ == "__main__":
     model.load_state_dict(checkpoint["state_dict"], strict=True)
 
     ds = ["CVC-300", "CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir"]
+    origin_path = args.test_path
     for _ds in ds:
         print(_ds)
-        args.test_path = args.test_path + "/" + _ds
+        args.test_path = origin_path + "/" + _ds
         inference(model, args)
-        args.test_path = './data/data/TestDataset'
