@@ -27,6 +27,7 @@ from mmseg.models.segmentors import UniPolyp as UNet
 
 from schedulers import WarmupPolyLR
 
+
 class Dataset(torch.utils.data.Dataset):
 
     def __init__(self, img_paths, mask_paths, aug=True, transform=None):
@@ -131,20 +132,23 @@ class FocalLossV1(nn.Module):
 #     wfocal = FocalLossV1()(pred, mask)
 #     wfocal = (wfocal * weit).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
 
+
 #     pred = torch.sigmoid(pred)
 #     inter = ((pred * mask) * weit).sum(dim=(2, 3))
 #     union = ((pred + mask) * weit).sum(dim=(2, 3))
 #     wiou = 1 - (inter + 1) / (union - inter + 1)
 #     return (wfocal + wiou).mean()
 def structure_loss(pred, mask):
-    weit = 1 + 5*torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
-    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduce='none')
-    wbce = (weit*wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
+    weit = 1 + 5 * torch.abs(
+        F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask
+    )
+    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduce="none")
+    wbce = (weit * wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
 
     pred = torch.sigmoid(pred)
-    inter = ((pred * mask)*weit).sum(dim=(2, 3))
-    union = ((pred + mask)*weit).sum(dim=(2, 3))
-    wiou = 1 - (inter + 1)/(union - inter+1)
+    inter = ((pred * mask) * weit).sum(dim=(2, 3))
+    union = ((pred + mask) * weit).sum(dim=(2, 3))
+    wiou = 1 - (inter + 1) / (union - inter + 1)
     return (wbce + wiou).mean()
 
 
@@ -174,43 +178,26 @@ def train(train_loader, model, optimizer, epoch, lr_scheduler, args):
                 images = F.interpolate(
                     images,
                     size=(trainsize, trainsize),
-                    mode="bilinear",
+                    mode="bicubic",
                     align_corners=True,
                 )
                 gts = F.interpolate(
                     gts,
                     size=(trainsize, trainsize),
-                    mode="bilinear",
+                    mode="bicubic",
                     align_corners=True,
                 )
                 # ---- forward ----
                 map0, map4, map3, map2, map1 = model(images)
-                # map1 = F.interpolate(
-                #     map1,
-                #     size=(trainsize, trainsize),
-                #     mode="bilinear",
-                #     align_corners=True,
-                # )
-                # map2 = F.interpolate(
-                #     map2,
-                #     size=(trainsize, trainsize),
-                #     mode="bilinear",
-                #     align_corners=True,
-                # )
-                # map3 = F.interpolate(
-                #     map3,
-                #     size=(trainsize, trainsize),
-                #     mode="bilinear",
-                #     align_corners=True,
-                # )
-                # map4 = F.interpolate(
-                #     map4,
-                #     size=(trainsize, trainsize),
-                #     mode="bilinear",
-                #     align_corners=True,
-                # )
-                loss = structure_loss(map0, gts) + structure_loss(map1, gts) + structure_loss(map2, gts) + structure_loss(map3, gts) + structure_loss(map4, gts)
-                
+
+                loss = (
+                    structure_loss(map0, gts)
+                    + structure_loss(map1, gts)
+                    + structure_loss(map2, gts)
+                    + structure_loss(map3, gts)
+                    + structure_loss(map4, gts)
+                )
+
                 # ---- metrics ----
                 dice_score = dice_m(map0, gts)
                 iou_score = iou_m(map0, gts)
@@ -288,14 +275,14 @@ if __name__ == "__main__":
     train_mask_paths = glob("{}/mask/*".format(args.train_path))
     train_img_paths.sort()
     train_mask_paths.sort()
-    
+
     transform = A.Compose(
         [
             A.Resize(height=args.init_trainsize, width=args.init_trainsize),
             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ]
     )
-    
+
     train_dataset = Dataset(train_img_paths, train_mask_paths, transform=transform)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -306,9 +293,10 @@ if __name__ == "__main__":
     )
 
     total_step = len(train_loader)
-    
+
     model = UNet(
-        backbone=dict(type="UniFormer",
+        backbone=dict(
+            type="UniFormer",
             # embed_dims=[64, 128, 320, 512],
             # depths=[3, 3, 12, 3],
             # drop_path_rate=0.1
@@ -346,7 +334,7 @@ if __name__ == "__main__":
     # lr_scheduler = WarmupPolyLR(optimizer, 0.6, 20 * total_step, 10, 0.1)
 
     start_epoch = 1
-    
+
     eps = 20
     print("#" * 20, "Start Training", "#" * 20)
     for epoch in range(start_epoch, eps + 1):

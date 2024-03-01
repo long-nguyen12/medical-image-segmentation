@@ -90,10 +90,10 @@ class UniPolyp(nn.Module):
         
         
         decoder_1 = self.decode_head.forward(segout) # 88x88
-        lateral_map_1 = F.interpolate(decoder_1, size=x.shape[2:], mode='bilinear')
+        lateral_map_1 = F.interpolate(decoder_1, size=x.shape[2:], mode='bicubic')
         
         # ------------------- atten-one -----------------------
-        decoder_2 = F.interpolate(decoder_1, size=x4_size, mode="bilinear", align_corners=True)
+        decoder_2 = F.interpolate(decoder_1, size=x4_size, mode="bicubic", align_corners=True)
         cfp_out_1 = self.CFP_3(x4)
         decoder_2_ra = -1*(torch.sigmoid(decoder_2)) + 1
         aa_atten_3 = self.aa_kernel_3(cfp_out_1)
@@ -105,10 +105,10 @@ class UniPolyp(nn.Module):
         ra_3 = self.ra3_conv3(ra_3) 
         
         x_3 = ra_3 + decoder_2
-        lateral_map_2 = F.interpolate(x_3, size=x.shape[2:],mode='bilinear', align_corners=True)
+        lateral_map_2 = F.interpolate(x_3, size=x.shape[2:],mode='bicubic', align_corners=True)
         
         # ------------------- atten-two -----------------------      
-        decoder_3 = F.interpolate(x_3, size=x3_size, mode='bilinear', align_corners=True)
+        decoder_3 = F.interpolate(x_3, size=x3_size, mode='bicubic', align_corners=True)
         cfp_out_2 = self.CFP_2(x3)
         decoder_3_ra = -1*(torch.sigmoid(decoder_3)) + 1
         aa_atten_2 = self.aa_kernel_2(cfp_out_2)
@@ -120,10 +120,10 @@ class UniPolyp(nn.Module):
         ra_2 = self.ra2_conv3(ra_2) 
         
         x_2 = ra_2 + decoder_3
-        lateral_map_3 = F.interpolate(x_2, size=x.shape[2:],mode='bilinear', align_corners=True)      
+        lateral_map_3 = F.interpolate(x_2, size=x.shape[2:],mode='bicubic', align_corners=True)      
         
         # ------------------- atten-three -----------------------
-        decoder_4 = F.interpolate(x_2, size=x2_size, mode='bilinear', align_corners=True)
+        decoder_4 = F.interpolate(x_2, size=x2_size, mode='bicubic', align_corners=True)
         cfp_out_3 = self.CFP_1(x2)
         decoder_4_ra = -1*(torch.sigmoid(decoder_4)) + 1
         aa_atten_1 = self.aa_kernel_1(cfp_out_3)
@@ -135,10 +135,10 @@ class UniPolyp(nn.Module):
         ra_1 = self.ra1_conv3(ra_1) 
         
         x_1 = ra_1 + decoder_4
-        lateral_map_4 = F.interpolate(x_1, size=x.shape[2:],mode='bilinear', align_corners=True) 
+        lateral_map_4 = F.interpolate(x_1, size=x.shape[2:],mode='bicubic', align_corners=True) 
         
         # ------------------- atten-four -----------------------
-        decoder_5 = F.interpolate(x_1, size=x1_size, mode='bilinear', align_corners=True)
+        decoder_5 = F.interpolate(x_1, size=x1_size, mode='bicubic', align_corners=True)
         cfp_out_4 = self.CFP_0(x1)
         decoder_5_ra = -1*(torch.sigmoid(decoder_5)) + 1
         aa_atten_0 = self.aa_kernel_0(cfp_out_4)
@@ -150,6 +150,6 @@ class UniPolyp(nn.Module):
         ra_0 = self.ra0_conv3(ra_0) 
         
         x_0 = ra_0 + decoder_5
-        lateral_map_5 = F.interpolate(x_0, size=x.shape[2:],mode='bilinear', align_corners=True) 
+        lateral_map_5 = F.interpolate(x_0, size=x.shape[2:],mode='bicubic', align_corners=True) 
         
         return lateral_map_5, lateral_map_4, lateral_map_3, lateral_map_2, lateral_map_1
