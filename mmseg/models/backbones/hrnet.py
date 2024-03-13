@@ -143,7 +143,7 @@ class HRModule(nn.Module):
                             # we set align_corners=False for HRNet
                             Upsample(
                                 scale_factor=2**(j - i),
-                                mode='bilinear',
+                                mode='bicubic',
                                 align_corners=False)))
                 elif j == i:
                     fuse_layer.append(None)
@@ -200,7 +200,7 @@ class HRModule(nn.Module):
                     y = y + resize(
                         self.fuse_layers[i][j](x[j]),
                         size=x[i].shape[2:],
-                        mode='bilinear',
+                        mode='bicubic',
                         align_corners=False)
                 else:
                     y += self.fuse_layers[i][j](x[j])

@@ -175,11 +175,11 @@ class OverlapPatchEmbed(nn.Module):
 class MSCAN(nn.Module):
     def __init__(self,
                  in_chans=3,
-                 embed_dims=[64, 128, 256, 512],
+                 embed_dims=[64, 128, 320, 512],
                  mlp_ratios=[8, 8, 4, 4],
                  drop_rate=0.,
                  drop_path_rate=0.,
-                 depths=[3, 4, 6, 3],
+                 depths=[3, 3, 12, 3],
                  num_stages=4,
                  norm_cfg=dict(type='BN', requires_grad=True),
                  pretrained=None):

@@ -25,11 +25,12 @@ from .cond_head import CondHead
 from .ham_head import LightHamHead
 from .setr_mla_head import SETRMLAHead
 from .pan_head import PANDecoder
+from .mlp_pan_head import MLPPanHead
 
 __all__ = [
     'FCNHead', 'PSPHead', 'ASPPHead', 'PSAHead', 'NLHead', 'GCHead', 'CCHead',
     'UPerHead', 'DepthwiseSeparableASPPHead', 'ANNHead', 'DAHead', 'OCRHead',
     'EncHead', 'DepthwiseSeparableFCNHead', 'FPNHead', 'EMAHead', 'DNLHead',
     'PointHead', 'APCHead', 'DMHead', 'LRASPPHead', 'ASPPFPNHead', 'FaPNHead',
-    'CondHead', 'LightHamHead', 'SETRMLAHead', 'PANDecoder'
+    'CondHead', 'LightHamHead', 'SETRMLAHead', 'PANDecoder', 'MLPPanHead'
 ]

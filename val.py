@@ -14,6 +14,7 @@ import albumentations as A
 from mmseg import __version__
 from mmseg.models.segmentors import UniPolyp as UNet
 import torch.nn.functional as F
+from albumentations.pytorch import ToTensorV2
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -34,6 +35,8 @@ class Dataset(torch.utils.data.Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mask = cv2.imread(mask_path, 0)
 
+        mask = mask[:, :, np.newaxis]
+        mask = mask.astype("float32") / 255
         if self.transform is not None:
             augmented = self.transform(image=image, mask=mask)
             image = augmented["image"]
@@ -42,15 +45,11 @@ class Dataset(torch.utils.data.Dataset):
             image = cv2.resize(image, (352, 352))
             mask = cv2.resize(mask, (352, 352))
 
-        image = image.astype("float32")
-        image = image.transpose((2, 0, 1))
+        image = image.float()
 
-        mask = mask[:, :, np.newaxis]
-        mask = mask.astype("float32") / 255
-        mask = mask.transpose((2, 0, 1))
+        mask = mask.permute(2, 0, 1)
 
-        return np.asarray(image), np.asarray(mask)
-
+        return image, mask
 
 epsilon = 1e-7
 
@@ -107,20 +106,20 @@ def get_scores(gts, prs):
 
 
 @torch.no_grad()
-def inference(model, args):
+def inference(model, data_path, args=None):
     print("#" * 20)
     torch.cuda.empty_cache()
     model.eval()
     device = torch.device('cuda')
-    X_test = glob("{}/images/*".format(args.test_path))
+    X_test = glob("{}/images/*".format(data_path))
     X_test.sort()
-    y_test = glob("{}/masks/*".format(args.test_path))
+    y_test = glob("{}/masks/*".format(data_path))
     y_test.sort()
     
     transform = A.Compose(
         [
-            A.Resize(height=args.init_trainsize, width=args.init_trainsize),
-            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            A.Resize(height=352, width=352),
+            ToTensorV2(),
         ]
     )
 
@@ -137,7 +136,7 @@ def inference(model, args):
         # gt = np.asarray(gt, np.float32)
         image = image.to(device)
         gt = gt.to(device)
-        res, res1 , res2, res3, res4 = model(image)
+        res, _ , _, _, _ = model(image)
         # res = res.sigmoid().data.cpu().numpy().squeeze()
         # res = (res - res.min()) / (res.max() - res.min() + 1e-8)
         # pr = res.round()
@@ -145,7 +144,7 @@ def inference(model, args):
         pr = (pr > 0.5).float()
         gts.append(gt)
         prs.append(pr)
-    get_scores(gts, prs)
+    return get_scores(gts, prs)
 
 
 if __name__ == "__main__":
@@ -153,44 +152,46 @@ if __name__ == "__main__":
     parser.add_argument("--backbone", type=str, default="b3")
     parser.add_argument("--weight", type=str, default="")
     parser.add_argument(
-        "--test_path", type=str, default="./data/data/TestDataset", help="path to dataset"
+        "--test_path", type=str, default="./data/Datasets", help="path to dataset"
     )
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
     args = parser.parse_args()
-
-    model = UNet(
-        backbone=dict(type="UniFormer",
-            # embed_dims=[64, 128, 320, 512],
-            # depths=[3, 3, 12, 3],
-            # drop_path_rate=0.1
-        ),
-        decode_head=dict(
-            type="PANDecoder",
-            in_channels=[64, 128, 320, 512],
-            in_index=[0, 1, 2, 3],
-            channels=128,
-            dropout_ratio=0.1,
-            num_classes=1,
-            norm_cfg=dict(type="BN", requires_grad=True),
-            align_corners=False,
-            loss_decode=dict(
-                type="CrossEntropyLoss", use_sigmoid=True, loss_weight=1.0
-            ),
-        ),
-        neck=None,
-        auxiliary_head=None,
-        train_cfg=dict(),
-        test_cfg=dict(mode="whole"),
-        pretrained="pretrained/uniformer_small_in1k.pth",
-    ).cuda()
-    checkpoint = torch.load('snapshots/UniFormer-PAN/checkpoint.pth', map_location='cpu')
-    model.load_state_dict(checkpoint["state_dict"], strict=True)
-
-    ds = ["CVC-300", "CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir"]
-    origin_path = args.test_path
+    ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
+        model = UNet(
+            backbone=dict(type="MSCAN",
+                # embed_dims=[64, 128, 320, 512],
+                # depths=[3, 3, 12, 3],
+                # drop_path_rate=0.1
+            ),
+            decode_head=dict(
+                type="MLPPanHead",
+                in_channels=[64, 128, 320, 512],
+                in_index=[0, 1, 2, 3],
+                channels=128,
+                dropout_ratio=0.1,
+                num_classes=1,
+                norm_cfg=dict(type="BN", requires_grad=True),
+                align_corners=False,
+                loss_decode=dict(
+                    type="CrossEntropyLoss", use_sigmoid=True, loss_weight=1.0
+                ),
+            ),
+            neck=None,
+            auxiliary_head=None,
+            train_cfg=dict(),
+            test_cfg=dict(mode="whole"),
+            pretrained="pretrained/mscan_b.pth",
+        ).cuda()
+        checkpoint = torch.load(f'snapshots/FocalNet-MLPPAN/{_ds}/base.pth', map_location='cpu')
+        model.load_state_dict(checkpoint["state_dict"], strict=True)
+
+        # ds = ["CVC-300", "CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir"]
+        # for _ds in ds:
         print(_ds)
-        args.test_path = origin_path + "/" + _ds
-        inference(model, args)
+        data_path = args.test_path + "/" + _ds + "/test/" 
+        inference(model, data_path, args)
+
+        

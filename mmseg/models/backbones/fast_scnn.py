@@ -236,7 +236,7 @@ class FeatureFusionModule(nn.Module):
         lower_res_feature = resize(
             lower_res_feature,
             size=higher_res_feature.size()[2:],
-            mode='bilinear',
+            mode='bicubic',
             align_corners=self.align_corners)
         lower_res_feature = self.dwconv(lower_res_feature)
         lower_res_feature = self.conv_lower_res(lower_res_feature)

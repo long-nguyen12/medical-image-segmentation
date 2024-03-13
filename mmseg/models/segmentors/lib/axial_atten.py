@@ -1,15 +1,50 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 10 17:17:13 2021
-
-@author: angelou
-"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mmseg.models.segmentors.lib.conv_layer import Conv
 from mmseg.models.segmentors.lib.self_attention import self_attn
 import math
+from torch.nn import init
+from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+
+class ConvBnRelu(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = True,
+        add_relu: bool = True,
+        interpolate: bool = False,
+    ):
+        super(ConvBnRelu, self).__init__()
+        self.conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            bias=bias,
+            groups=groups,
+        )
+        self.add_relu = add_relu
+        self.interpolate = interpolate
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.activation = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        if self.add_relu:
+            x = self.activation(x)
+        if self.interpolate:
+            x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
+        return x
 
 
 class AA_kernel(nn.Module):
@@ -29,46 +64,105 @@ class AA_kernel(nn.Module):
 
         return Wx
     
-class EMHA(nn.Module):
-    def __init__(self, dim, head=1, sr_ratio=1):
+class AA_kernel_1(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, upscale_mode: str = "bilinear"):
+        super(AA_kernel_1, self).__init__()
+
+        self.upscale_mode = upscale_mode
+        self.align_corners = True if upscale_mode == "bilinear" else None
+
+        self.conv1 = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            ConvBnRelu(
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel_size=1,
+                add_relu=False,
+            ),
+            nn.Sigmoid(),
+        )
+        self.conv2 = ConvBnRelu(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+
+    def forward(self, x, y):
+        """
+        Args:
+            x: low level feature
+            y: high level feature
+        """
+        h, w = x.size(2), x.size(3)
+        y_up = F.interpolate(y, size=(h, w), mode=self.upscale_mode, align_corners=self.align_corners)
+        x = self.conv2(x)
+        y = self.conv1(y)
+        z = torch.mul(x, y)
+        return y_up + z
+    
+
+class SEAttention(nn.Module):
+
+    def __init__(self, channel=512,reduction=16):
         super().__init__()
-        self.head = head
-        self.sr_ratio = sr_ratio 
-        self.scale = (dim // head) ** -0.5
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid()
+        )
+        self.apply(self._init_weights)
 
-        self.q = nn.Linear(dim, dim)
-        self.kv = nn.Linear(dim, dim*2)
-        self.proj = nn.Linear(dim, dim)
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+        elif isinstance(m, nn.Conv2d):
+            fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+            fan_out //= m.groups
+            m.weight.data.normal_(0, math.sqrt(2.0 / fan_out))
+            if m.bias is not None:
+                m.bias.data.zero_()
 
-        if sr_ratio > 1:
-            self.sr = nn.Conv2d(dim, dim, sr_ratio+1, sr_ratio, sr_ratio//2, groups=dim)
-            self.sr_norm = nn.LayerNorm(dim)
 
-        self.apply_transform = head > 1
-        if self.apply_transform:
-            self.transform_conv = nn.Conv2d(head, head, 1, 1)
-            self.transform_norm = nn.InstanceNorm2d(head)
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+    
 
-    def forward(self, x, H, W):
-        x = x.flatten(2).transpose(1, 2)  # (B, N, C)
-        B, N, C = x.shape
-        q = self.q(x).reshape(B, N, self.head, C // self.head).permute(0, 2, 1, 3)
+class SCSEModule(nn.Module):
+    """
+    Concurrent spatial and channel squeeze & excitation attention module, as proposed in https://arxiv.org/pdf/1803.02579.pdf.
+    """
+    def __init__(self, in_channels, reduction=16):
+        super().__init__()
+        self.cSE = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels, in_channels // reduction, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels // reduction, in_channels, 1),
+            nn.Sigmoid(),
+        )
+        self.sSE = nn.Sequential(nn.Conv2d(in_channels, 1, 1), nn.Sigmoid())
+        self.apply(self._init_weights)
 
-        if self.sr_ratio > 1:
-            x = x.permute(0, 2, 1).reshape(B, C, H, W)
-            x = self.sr(x).reshape(B, C, -1).permute(0, 2, 1)
-            x = self.sr_norm(x)
-        k, v = self.kv(x).reshape(B, -1, 2, self.head, C // self.head).permute(2, 0, 3, 1, 4)
+    def forward(self, x):
+        return x * self.cSE(x) + x * self.sSE(x)
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-
-        if self.apply_transform:
-            attn = self.transform_conv(attn)
-            attn = attn.softmax(dim=-1)
-            attn = self.transform_norm(attn)
-        else:
-            attn = attn.softmax(dim=-1)
-
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
-        x = self.proj(x)
-        return x
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+        elif isinstance(m, nn.Conv2d):
+            fan_out = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+            fan_out //= m.groups
+            m.weight.data.normal_(0, math.sqrt(2.0 / fan_out))
+            if m.bias is not None:
+                m.bias.data.zero_()

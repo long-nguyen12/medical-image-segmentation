@@ -157,19 +157,19 @@ def test_interp_conv():
     assert isinstance(block.interp_upsample[1], nn.Upsample)
     assert x_out.shape == torch.Size([1, 32, 256, 256])
 
-    # test InterpConv with bilinear upsample for upsample 2X.
+    # test InterpConv with bicubic upsample for upsample 2X.
     block = InterpConv(
         64,
         32,
         conv_first=False,
         upsample_cfg=dict(
-            scale_factor=2, mode='bilinear', align_corners=False))
+            scale_factor=2, mode='bicubic', align_corners=False))
     x = torch.randn(1, 64, 128, 128)
     x_out = block(x)
     assert isinstance(block.interp_upsample[0], nn.Upsample)
     assert isinstance(block.interp_upsample[1], ConvModule)
     assert x_out.shape == torch.Size([1, 32, 256, 256])
-    assert block.interp_upsample[0].mode == 'bilinear'
+    assert block.interp_upsample[0].mode == 'bicubic'
 
     # test InterpConv with nearest upsample for upsample 2X.
     block = InterpConv(
@@ -239,7 +239,7 @@ def test_up_conv_block():
     assert x_out.shape == torch.Size([1, 32, 256, 256])
 
     # test UpConvBlock with different upsample method for upsample 2X.
-    # The upsample method is interpolation upsample (bilinear or nearest).
+    # The upsample method is interpolation upsample (bicubic or nearest).
     block = UpConvBlock(
         BasicConvBlock,
         64,
@@ -248,7 +248,7 @@ def test_up_conv_block():
         upsample_cfg=dict(
             type='InterpConv',
             upsample_cfg=dict(
-                scale_factor=2, mode='bilinear', align_corners=False)))
+                scale_factor=2, mode='bicubic', align_corners=False)))
     skip_x = torch.randn(1, 32, 256, 256)
     x = torch.randn(1, 64, 128, 128)
     x_out = block(skip_x, x)
@@ -278,7 +278,7 @@ def test_up_conv_block():
         upsample_cfg=dict(
             type='InterpConv',
             upsample_cfg=dict(
-                scale_factor=2, mode='bilinear', align_corners=False)))
+                scale_factor=2, mode='bicubic', align_corners=False)))
     skip_x = torch.randn(1, 32, 256, 256)
     x = torch.randn(1, 64, 128, 128)
     x_out = block(skip_x, x)

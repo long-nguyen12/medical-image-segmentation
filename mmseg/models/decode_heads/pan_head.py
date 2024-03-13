@@ -46,16 +46,16 @@ class ConvBnRelu(nn.Module):
         if self.add_relu:
             x = self.activation(x)
         if self.interpolate:
-            x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
+            x = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=True)
         return x
 
 
 class FPABlock(nn.Module):
-    def __init__(self, in_channels, out_channels, upscale_mode="bilinear"):
+    def __init__(self, in_channels, out_channels, upscale_mode="bicubic"):
         super(FPABlock, self).__init__()
 
         self.upscale_mode = upscale_mode
-        if self.upscale_mode == "bilinear":
+        if self.upscale_mode == "bicubic":
             self.align_corners = True
         else:
             self.align_corners = False
@@ -128,40 +128,40 @@ class FPABlock(nn.Module):
         upscale_parameters = dict(mode=self.upscale_mode, align_corners=self.align_corners)
         b1 = F.interpolate(b1, size=(h, w), **upscale_parameters)
 
-        mid = self.conv0(x)
+        # mid = self.conv0(x)
 
-        att_branch1 = self.att_branch1(mid)
-        att_branch2 = self.att_branch2(mid)
-        att_branch3 = self.att_branch3(mid)
+        # att_branch1 = self.att_branch1(mid)
+        # att_branch2 = self.att_branch2(mid)
+        # att_branch3 = self.att_branch3(mid)
 
-        att = att_branch1 + att_branch2 + att_branch3
-        x = torch.mul(mid, att)
-        # mid = self.mid(x)
-        # x1 = self.down1(x)
-        # x2 = self.down2(x1)
-        # x3 = self.down3(x2)
-        # x3 = F.interpolate(x3, size=(h // 4, w // 4), **upscale_parameters)
+        # att = att_branch1 + att_branch2 + att_branch3
+        # x = torch.mul(mid, att)
+        mid = self.mid(x)
+        x1 = self.down1(x)
+        x2 = self.down2(x1)
+        x3 = self.down3(x2)
+        x3 = F.interpolate(x3, size=(h // 4, w // 4), **upscale_parameters)
 
-        # x2 = self.conv2(x2)
-        # x = x2 + x3
-        # x = F.interpolate(x, size=(h // 2, w // 2), **upscale_parameters)
+        x2 = self.conv2(x2)
+        x = x2 + x3
+        x = F.interpolate(x, size=(h // 2, w // 2), **upscale_parameters)
 
-        # x1 = self.conv1(x1)
-        # x = x + x1
-        # x = F.interpolate(x, size=(h, w), **upscale_parameters)
+        x1 = self.conv1(x1)
+        x = x + x1
+        x = F.interpolate(x, size=(h, w), **upscale_parameters)
 
-        # x = torch.mul(x, mid)
+        x = torch.mul(x, mid)
         x = x + b1
         # return x
         return x
 
 
 class GAUBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, upscale_mode: str = "bilinear"):
+    def __init__(self, in_channels: int, out_channels: int, upscale_mode: str = "bicubic"):
         super(GAUBlock, self).__init__()
 
         self.upscale_mode = upscale_mode
-        self.align_corners = True if upscale_mode == "bilinear" else None
+        self.align_corners = True if upscale_mode == "bicubic" else None
 
         self.conv1 = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
@@ -198,17 +198,17 @@ class PANDecoder(BaseDecodeHead):
         self.gau3 = GAUBlock(
             in_channels=self.in_channels[-2],
             out_channels=self.channels,
-            upscale_mode="bilinear",
+            upscale_mode="bicubic",
         )
         self.gau2 = GAUBlock(
             in_channels=self.in_channels[-3],
             out_channels=self.channels,
-            upscale_mode="bilinear",
+            upscale_mode="bicubic",
         )
         self.gau1 = GAUBlock(
             in_channels=self.in_channels[-4],
             out_channels=self.channels,
-            upscale_mode="bilinear",
+            upscale_mode="bicubic",
         )
         
         self.apply(self._init_weights)
