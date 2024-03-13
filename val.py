@@ -150,7 +150,7 @@ if __name__ == "__main__":
     parser.add_argument("--backbone", type=str, default="b3")
     parser.add_argument("--weight", type=str, default="")
     parser.add_argument(
-        "--test_path", type=str, default="./data/Datasets", help="path to dataset"
+        "--test_path", type=str, default="./data/dataset", help="path to dataset"
     )
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
         checkpoint = torch.load(
-            f"snapshots/FocalNet-MLPPAN/{_ds}/base.pth", map_location="cpu"
+            f"snapshots/MSCAN-MLPPAN-1/{_ds}/base.pth", map_location="cpu"
         )
         model.load_state_dict(checkpoint["state_dict"], strict=True)
 
