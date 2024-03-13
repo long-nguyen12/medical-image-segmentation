@@ -108,7 +108,6 @@ def structure_loss(pred, mask):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_epochs", type=int, default=100, help="epoch number")
-    parser.add_argument("--backbone", type=str, default="b3", help="backbone version")
     parser.add_argument("--init_lr", type=float, default=1e-4, help="learning rate")
     parser.add_argument("--batchsize", type=int, default=8, help="training batch size")
     parser.add_argument(
@@ -120,16 +119,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train_path",
         type=str,
-        default="./data/dataset/",
+        default="./data/dataset",
         help="path to train dataset",
     )
     parser.add_argument("--train_save", type=str, default="mscan-base")
-    parser.add_argument(
-        "--resume_path",
-        type=str,
-        help="path to checkpoint for resume training",
-        default="",
-    )
     args = parser.parse_args()
 
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
@@ -138,7 +131,7 @@ if __name__ == "__main__":
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
         else:
-            print("Save path existed")
+            print("Save path existed", flush=True)
 
         train_img_paths = []
         train_mask_paths = []
@@ -178,7 +171,7 @@ if __name__ == "__main__":
             pin_memory=True,
             drop_last=True,
         )
-        print(len(train_loader))
+        print(len(train_loader), flush=True)
 
         total_step = len(train_loader)
         _total_step = len(train_loader)
@@ -224,7 +217,7 @@ if __name__ == "__main__":
         loss_record = AvgMeter()
         dice, iou = AvgMeter(), AvgMeter()
 
-        print("#" * 20, "Start Training", "#" * 20)
+        print("#" * 20, "Start Training", "#" * 20, flush=True)
         for epoch in range(start_epoch, eps + 1):
             model.train()
             with torch.autograd.set_detect_anomaly(True):
@@ -278,7 +271,8 @@ if __name__ == "__main__":
                         loss_record.show(),
                         dice.show(),
                         iou.show(),
-                    )
+                    ),
+                    flush=True,
                 )
 
             if epoch % 5 == 0:
@@ -288,7 +282,7 @@ if __name__ == "__main__":
                 if mean_iou > best_iou:
                     best_iou = mean_iou
                     ckpt_path = save_path + "best.pth"
-                    print("[Saving Checkpoint:]", ckpt_path)
+                    print("[Saving Checkpoint:]", ckpt_path, flush=True)
                     checkpoint = {
                         "epoch": epoch + 1,
                         "state_dict": model.state_dict(),
@@ -299,7 +293,7 @@ if __name__ == "__main__":
 
             if epoch == eps:
                 ckpt_path = save_path + "last.pth"
-                print("[Saving Checkpoint:]", ckpt_path)
+                print("[Saving Checkpoint:]", ckpt_path, flush=True)
                 checkpoint = {
                     "epoch": epoch + 1,
                     "state_dict": model.state_dict(),

@@ -125,3 +125,5 @@ work_dirs/
 *.py~
 *.sh~
 
+
+data/
