@@ -20,14 +20,12 @@ from datetime import datetime
 import torch.nn.functional as F
 
 from albumentations.pytorch import ToTensorV2
-from albumentations.augmentations import transforms
-from albumentations.core.composition import Compose, OneOf
 import albumentations as A
 from mmseg import __version__
 from mmseg.models.segmentors import UniPolyp as UNet
 from val import inference
 from schedulers import WarmupPolyLR
-from lr_scheduler import LR_Scheduler
+
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -92,15 +90,18 @@ def iou_m(y_true, y_pred):
     recall = recall_m(y_true, y_pred)
     return recall * precision / (recall + precision - recall * precision + epsilon)
 
+
 def structure_loss(pred, mask):
-    weit = 1 + 5*torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
-    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduction='mean')
-    wbce = (weit*wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
+    weit = 1 + 5 * torch.abs(
+        F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask
+    )
+    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduction="mean")
+    wbce = (weit * wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
 
     pred = torch.sigmoid(pred)
-    inter = ((pred * mask)*weit).sum(dim=(2, 3))
-    union = ((pred + mask)*weit).sum(dim=(2, 3))
-    wiou = 1 - (inter + 1)/(union - inter+1)
+    inter = ((pred * mask) * weit).sum(dim=(2, 3))
+    union = ((pred + mask) * weit).sum(dim=(2, 3))
+    wiou = 1 - (inter + 1) / (union - inter + 1)
     return (wbce + wiou).mean()
 
 
@@ -130,7 +131,7 @@ if __name__ == "__main__":
         default="",
     )
     args = parser.parse_args()
- 
+
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
         save_path = "snapshots/{}/{}/".format(args.train_save, _ds)
@@ -151,12 +152,24 @@ if __name__ == "__main__":
                 A.Resize(height=352, width=352),
                 A.HorizontalFlip(),
                 A.VerticalFlip(),
-                A.ColorJitter(brightness=(0.6,1.6), contrast=0.2, saturation=0.1, hue=0.01, always_apply=True),
-                A.Affine(scale=(0.5,1.5), translate_percent=(-0.125,0.125), rotate=(-180,180), shear=(-22.5,22), always_apply=True),
+                A.ColorJitter(
+                    brightness=(0.6, 1.6),
+                    contrast=0.2,
+                    saturation=0.1,
+                    hue=0.01,
+                    always_apply=True,
+                ),
+                A.Affine(
+                    scale=(0.5, 1.5),
+                    translate_percent=(-0.125, 0.125),
+                    rotate=(-180, 180),
+                    shear=(-22.5, 22),
+                    always_apply=True,
+                ),
                 ToTensorV2(),
             ]
         )
-            
+
         train_dataset = Dataset(train_img_paths, train_mask_paths, transform=transform)
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -169,9 +182,10 @@ if __name__ == "__main__":
 
         total_step = len(train_loader)
         _total_step = len(train_loader)
-        
+
         model = UNet(
-            backbone=dict(type="MSCAN",
+            backbone=dict(
+                type="MSCAN",
                 # embed_dims=[96, 192, 384, 768],
                 # depths=[3, 3, 12, 3],
                 # drop_path_rate=0.1
@@ -198,12 +212,15 @@ if __name__ == "__main__":
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
 
-        
         eps = 100
         # ---- flops and params ----
         params = model.parameters()
-        optimizer = torch.optim.AdamW(params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=1e-5)
-        lr_scheduler = WarmupPolyLR(optimizer, 0.9, eps * _total_step, _total_step * 10, 0.01)
+        optimizer = torch.optim.AdamW(
+            params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=1e-5
+        )
+        lr_scheduler = WarmupPolyLR(
+            optimizer, 0.9, eps * _total_step, _total_step * 10, 0.01
+        )
         # lr_scheduler = LR_Scheduler(0.6, eps, _total_step, _total_step * 10, 0.01)
         # optimizer = torch.optim.Adam(params, args.init_lr)
         # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -237,24 +254,17 @@ if __name__ == "__main__":
                     images, gts = pack
                     images = Variable(images).cuda()
                     gts = Variable(gts).cuda()
-                    # ---- rescale ----
-                    # trainsize = int(352 * rate)
-                    # images = F.interpolate(
-                    #     images,
-                    #     size=(trainsize, trainsize),
-                    #     mode="bicubic",
-                    #     align_corners=True,
-                    # )
-                    # gts = F.interpolate(
-                    #     gts,
-                    #     size=(trainsize, trainsize),
-                    #     mode="bicubic",
-                    #     align_corners=True,
-                    # )
+
                     # ---- forward ----
                     map0, map4, map3, map2, map1 = model(images)
-                    loss = structure_loss(map1, gts) + structure_loss(map0, gts) + structure_loss(map2, gts) + structure_loss(map3, gts) + structure_loss(map4, gts)
-                    
+                    loss = (
+                        structure_loss(map1, gts)
+                        + structure_loss(map0, gts)
+                        + structure_loss(map2, gts)
+                        + structure_loss(map3, gts)
+                        + structure_loss(map4, gts)
+                    )
+
                     # ---- metrics ----
                     dice_score = dice_m(map0, gts)
                     iou_score = iou_m(map0, gts)
@@ -270,7 +280,7 @@ if __name__ == "__main__":
 
                 # lr_scheduler.step()
 
-                    # ---- train visualization ----
+                # ---- train visualization ----
                 print(
                     "{} Training Epoch [{:03d}/{:03d}], "
                     "[loss: {:0.4f}, dice: {:0.4f}, iou: {:0.4f}]".format(
@@ -284,7 +294,9 @@ if __name__ == "__main__":
                 )
 
             if epoch % 5 == 0:
-                mean_iou, mean_dice, mean_precision, mean_recall = inference(model, f"{args.train_path}/{_ds}/test/")
+                mean_iou, mean_dice, mean_precision, mean_recall = inference(
+                    model, f"{args.train_path}/{_ds}/test/"
+                )
                 if mean_iou > best_iou:
                     best_iou = mean_iou
                     ckpt_path = save_path + "base.pth"

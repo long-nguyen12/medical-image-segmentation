@@ -51,6 +51,7 @@ class Dataset(torch.utils.data.Dataset):
 
         return image, mask
 
+
 epsilon = 1e-7
 
 
@@ -110,12 +111,12 @@ def inference(model, data_path, args=None):
     print("#" * 20)
     torch.cuda.empty_cache()
     model.eval()
-    device = torch.device('cuda')
+    device = torch.device("cuda")
     X_test = glob("{}/images/*".format(data_path))
     X_test.sort()
     y_test = glob("{}/masks/*".format(data_path))
     y_test.sort()
-    
+
     transform = A.Compose(
         [
             A.Resize(height=352, width=352),
@@ -132,14 +133,11 @@ def inference(model, data_path, args=None):
     prs = []
     for i, pack in enumerate(test_loader, start=1):
         image, gt = pack
-        # gt = gt[0][0]
-        # gt = np.asarray(gt, np.float32)
+
         image = image.to(device)
         gt = gt.to(device)
-        res, _ , _, _, _ = model(image)
-        # res = res.sigmoid().data.cpu().numpy().squeeze()
-        # res = (res - res.min()) / (res.max() - res.min() + 1e-8)
-        # pr = res.round()
+        res, _, _, _, _ = model(image)
+
         pr = torch.sigmoid(res)
         pr = (pr > 0.5).float()
         gts.append(gt)
@@ -161,7 +159,8 @@ if __name__ == "__main__":
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
         model = UNet(
-            backbone=dict(type="MSCAN",
+            backbone=dict(
+                type="MSCAN",
                 # embed_dims=[64, 128, 320, 512],
                 # depths=[3, 3, 12, 3],
                 # drop_path_rate=0.1
@@ -185,13 +184,13 @@ if __name__ == "__main__":
             test_cfg=dict(mode="whole"),
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
-        checkpoint = torch.load(f'snapshots/FocalNet-MLPPAN/{_ds}/base.pth', map_location='cpu')
+        checkpoint = torch.load(
+            f"snapshots/FocalNet-MLPPAN/{_ds}/base.pth", map_location="cpu"
+        )
         model.load_state_dict(checkpoint["state_dict"], strict=True)
 
         # ds = ["CVC-300", "CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir"]
         # for _ds in ds:
         print(_ds)
-        data_path = args.test_path + "/" + _ds + "/test/" 
+        data_path = args.test_path + "/" + _ds + "/test/"
         inference(model, data_path, args)
-
-        
