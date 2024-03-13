@@ -9,6 +9,7 @@ from ...utils import Upsample
 from .decode_head import BaseDecodeHead
 from ..segmentors.lib.cbam import CBAM
 
+
 class ConvBnRelu(nn.Module):
     def __init__(
         self,
@@ -74,22 +75,33 @@ class FPABlock(nn.Module):
         # midddle branch
         self.conv0 = ConvBnRelu(in_channels, out_channels, 1, 1, 0)
 
+        self.conv13_0 = nn.Conv2d(
+            out_channels, out_channels, (1, 3), padding=(0, 1), groups=out_channels
+        )
+        self.conv13_1 = nn.Conv2d(
+            out_channels, out_channels, (3, 1), padding=(1, 0), groups=out_channels
+        )
 
-        self.conv13_0 = nn.Conv2d(out_channels, out_channels, (1,3), padding=(0, 1), groups=out_channels)
-        self.conv13_1 = nn.Conv2d(out_channels, out_channels, (3,1), padding=(1, 0), groups=out_channels)
+        self.conv15_0 = nn.Conv2d(
+            out_channels, out_channels, (1, 5), padding=(0, 2), groups=out_channels
+        )
+        self.conv15_1 = nn.Conv2d(
+            out_channels, out_channels, (5, 1), padding=(2, 0), groups=out_channels
+        )
 
-        self.conv15_0 = nn.Conv2d(out_channels, out_channels, (1,5), padding=(0,2), groups=out_channels)
-        self.conv15_1 = nn.Conv2d(out_channels, out_channels, (5,1), padding=(2,0), groups=out_channels)
-
-        self.conv17_0 = nn.Conv2d(out_channels, out_channels, (1,7), padding=(0, 3), groups=out_channels)
-        self.conv17_1 = nn.Conv2d(out_channels, out_channels, (7,1), padding=(3, 0), groups=out_channels)
+        self.conv17_0 = nn.Conv2d(
+            out_channels, out_channels, (1, 7), padding=(0, 3), groups=out_channels
+        )
+        self.conv17_1 = nn.Conv2d(
+            out_channels, out_channels, (7, 1), padding=(3, 0), groups=out_channels
+        )
 
         self.mixer = ConvBnRelu(out_channels, out_channels, 1)
 
     def forward(self, x):
         h, w = x.size(2), x.size(3)
         b1 = self.branch1(x)
-        
+
         mid = self.conv0(x)
 
         c13 = self.conv13_0(mid)
@@ -106,10 +118,10 @@ class FPABlock(nn.Module):
         x = torch.mul(mid, att)
 
         x = x + b1
-        
+
         return x
-    
-    
+
+
 class MLP(nn.Module):
     def __init__(self, dim, embed_dim):
         super().__init__()
@@ -120,38 +132,14 @@ class MLP(nn.Module):
         x = self.proj(x)
         return x
 
-# class MLP(nn.Module):
-#     def __init__(self, dim, hidden_dim, out_dim=None) -> None:
-#         super().__init__()
-#         out_dim = out_dim or hidden_dim
-#         self.fc1 = nn.Linear(dim, hidden_dim)
-#         self.fc2 = nn.Linear(hidden_dim, out_dim)
-
-#     def forward(self, x: Tensor) -> Tensor:
-#         x = x.flatten(2).transpose(1, 2)
-#         x = F.gelu(self.fc1(x))
-#         return self.fc2(x)
-
-# class FSM(nn.Module):
-#     def __init__(self, c1, c2):
-#         super().__init__()
-#         self.conv_atten = nn.Conv2d(c1, c1, 1, bias=False)
-#         self.conv = nn.Conv2d(c1, c2, 1, bias=False)
-
-#     def forward(self, x: Tensor) -> Tensor:
-#         atten = self.conv_atten(F.avg_pool2d(x, x.shape[2:])).sigmoid()
-#         feat = torch.mul(x, atten)
-#         x = x + feat
-#         return self.conv(x)
-
 
 @HEADS.register_module()
 class MLPPanHead(BaseDecodeHead):
     def __init__(self, **kwargs):
-        super().__init__(input_transform='multiple_select', **kwargs)
-        
-        self.fpa = FPABlock(in_channels=self.channels*4, out_channels=self.channels)
-        
+        super().__init__(input_transform="multiple_select", **kwargs)
+
+        self.fpa = FPABlock(in_channels=self.channels * 4, out_channels=self.channels)
+
         for i, dim in enumerate(self.in_channels):
             self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
             # self.add_module(f"cbam_c{i+1}", CBAM(dim))
@@ -162,7 +150,7 @@ class MLPPanHead(BaseDecodeHead):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
+            trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
@@ -181,8 +169,14 @@ class MLPPanHead(BaseDecodeHead):
 
         for i, cf in enumerate(features):
             # cf = eval(f"self.cbam_c{i+1}")(cf)
-            cf = eval(f"self.linear_c{i+1}")(cf).permute(0, 2, 1).reshape(B, -1, *cf.shape[-2:])
-            outs.append(F.interpolate(cf, size=(H, W), mode='bicubic', align_corners=True))
+            cf = (
+                eval(f"self.linear_c{i+1}")(cf)
+                .permute(0, 2, 1)
+                .reshape(B, -1, *cf.shape[-2:])
+            )
+            outs.append(
+                F.interpolate(cf, size=(H, W), mode="bicubic", align_corners=True)
+            )
 
         seg = self.fpa(torch.cat(outs, dim=1))
         output = self.cls_seg(self.dropout(seg))

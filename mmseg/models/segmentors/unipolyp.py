@@ -39,14 +39,14 @@ class UniPolyp(nn.Module):
         self.backbone.init_weights(pretrained=pretrained)
         self.decode_head.init_weights()
         self.in_channels = decode_head["in_channels"]
-        self.CFP_0 = CFPModule(self.in_channels[0], d=8)
-        self.CFP_1 = CFPModule(self.in_channels[1], d=8)
-        self.CFP_2 = CFPModule(self.in_channels[2], d=8)
-        self.CFP_3 = CFPModule(self.in_channels[3], d=8)
-        # self.CFP_0 = CBAM(self.in_channels[0])
-        # self.CFP_1 = CBAM(self.in_channels[1])
-        # self.CFP_2 = CBAM(self.in_channels[2])
-        # self.CFP_3 = CBAM(self.in_channels[3])
+        # self.CFP_0 = CFPModule(self.in_channels[0], d=8)
+        # self.CFP_1 = CFPModule(self.in_channels[1], d=8)
+        # self.CFP_2 = CFPModule(self.in_channels[2], d=8)
+        # self.CFP_3 = CFPModule(self.in_channels[3], d=8)
+        self.CFP_0 = CBAM(self.in_channels[0])
+        self.CFP_1 = CBAM(self.in_channels[1])
+        self.CFP_2 = CBAM(self.in_channels[2])
+        self.CFP_3 = CBAM(self.in_channels[3])
 
         ###### dilation rate 4, 62.8
 
