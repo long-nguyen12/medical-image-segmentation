@@ -185,7 +185,7 @@ if __name__ == "__main__":
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
         checkpoint = torch.load(
-            f"snapshots/MSCAN-MLPPAN-1/{_ds}/base.pth", map_location="cpu"
+            f"snapshots/mscan-base/{_ds}/best.pth", map_location="cpu"
         )
         model.load_state_dict(checkpoint["state_dict"], strict=True)
 

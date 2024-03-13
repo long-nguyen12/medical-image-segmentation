@@ -114,6 +114,7 @@ class FPABlock(nn.Module):
         c17 = self.conv17_1(c17)
 
         att = c13 + c15 + c17
+        att = self.mixer(att)
 
         x = torch.mul(mid, att)
 

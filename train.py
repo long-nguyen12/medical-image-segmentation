@@ -110,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=100, help="epoch number")
     parser.add_argument("--backbone", type=str, default="b3", help="backbone version")
     parser.add_argument("--init_lr", type=float, default=1e-4, help="learning rate")
-    parser.add_argument("--batchsize", type=int, default=4, help="training batch size")
+    parser.add_argument("--batchsize", type=int, default=8, help="training batch size")
     parser.add_argument(
         "--init_trainsize", type=int, default=352, help="training dataset size"
     )
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         default="./data/dataset/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="MSCAN-MLPPAN-1")
+    parser.add_argument("--train_save", type=str, default="mscan-base")
     parser.add_argument(
         "--resume_path",
         type=str,
@@ -186,10 +186,6 @@ if __name__ == "__main__":
         model = UNet(
             backbone=dict(
                 type="MSCAN",
-                # embed_dims=[96, 192, 384, 768],
-                # depths=[3, 3, 12, 3],
-                # drop_path_rate=0.1
-                # focal_levels=[3,3,3,3]
             ),
             decode_head=dict(
                 type="MLPPanHead",
@@ -221,14 +217,6 @@ if __name__ == "__main__":
         lr_scheduler = WarmupPolyLR(
             optimizer, 0.9, eps * _total_step, _total_step * 10, 0.01
         )
-        # lr_scheduler = LR_Scheduler(0.6, eps, _total_step, _total_step * 10, 0.01)
-        # optimizer = torch.optim.Adam(params, args.init_lr)
-        # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        #     optimizer,
-        #     T_max=len(train_loader) * eps,
-        #     eta_min=args.init_lr / 1000,
-        # )
-
         start_epoch = 1
 
         best_iou = 0
@@ -299,7 +287,7 @@ if __name__ == "__main__":
                 )
                 if mean_iou > best_iou:
                     best_iou = mean_iou
-                    ckpt_path = save_path + "base.pth"
+                    ckpt_path = save_path + "best.pth"
                     print("[Saving Checkpoint:]", ckpt_path)
                     checkpoint = {
                         "epoch": epoch + 1,
