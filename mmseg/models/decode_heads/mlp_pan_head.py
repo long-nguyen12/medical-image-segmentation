@@ -170,11 +170,11 @@ class MLPPanHead(BaseDecodeHead):
 
         for i, cf in enumerate(features):
             # cf = eval(f"self.cbam_c{i+1}")(cf)
-            cf = (
-                eval(f"self.linear_c{i+1}")(cf)
-                .permute(0, 2, 1)
-                .reshape(B, -1, *cf.shape[-2:])
-            )
+            # cf = (
+            #     eval(f"self.linear_c{i+1}")(cf)
+            #     .permute(0, 2, 1)
+            #     .reshape(B, -1, *cf.shape[-2:])
+            # )
             outs.append(
                 F.interpolate(cf, size=(H, W), mode="bicubic", align_corners=True)
             )

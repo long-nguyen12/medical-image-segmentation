@@ -39,14 +39,14 @@ class UniPolyp(nn.Module):
         self.backbone.init_weights(pretrained=pretrained)
         self.decode_head.init_weights()
         self.in_channels = decode_head["in_channels"]
-        # self.CFP_0 = CFPModule(self.in_channels[0], d=8)
-        # self.CFP_1 = CFPModule(self.in_channels[1], d=8)
-        # self.CFP_2 = CFPModule(self.in_channels[2], d=8)
-        # self.CFP_3 = CFPModule(self.in_channels[3], d=8)
-        self.CFP_0 = CBAM(self.in_channels[0])
-        self.CFP_1 = CBAM(self.in_channels[1])
-        self.CFP_2 = CBAM(self.in_channels[2])
-        self.CFP_3 = CBAM(self.in_channels[3])
+        self.CFP_0 = CFPModule(self.in_channels[0], d=8)
+        self.CFP_1 = CFPModule(self.in_channels[1], d=8)
+        self.CFP_2 = CFPModule(self.in_channels[2], d=8)
+        self.CFP_3 = CFPModule(self.in_channels[3], d=8)
+        # self.CFP_0 = CBAM(self.in_channels[0])
+        # self.CFP_1 = CBAM(self.in_channels[1])
+        # self.CFP_2 = CBAM(self.in_channels[2])
+        # self.CFP_3 = CBAM(self.in_channels[3])
 
         ###### dilation rate 4, 62.8
 
@@ -110,15 +110,15 @@ class UniPolyp(nn.Module):
             self.in_channels[3] // 4, 1, 3, 1, padding=1, bn_acti=True
         )
 
-        # self.aa_kernel_0 = AA_kernel(self.in_channels[0],self.in_channels[0])
-        # self.aa_kernel_1 = AA_kernel(self.in_channels[1],self.in_channels[1])
-        # self.aa_kernel_2 = AA_kernel(self.in_channels[2],self.in_channels[2])
-        # self.aa_kernel_3 = AA_kernel(self.in_channels[3],self.in_channels[3])
+        self.aa_kernel_0 = AA_kernel(self.in_channels[0], self.in_channels[0])
+        self.aa_kernel_1 = AA_kernel(self.in_channels[1], self.in_channels[1])
+        self.aa_kernel_2 = AA_kernel(self.in_channels[2], self.in_channels[2])
+        self.aa_kernel_3 = AA_kernel(self.in_channels[3], self.in_channels[3])
 
-        self.aa_kernel_0 = SEAttention(self.in_channels[0])
-        self.aa_kernel_1 = SEAttention(self.in_channels[1])
-        self.aa_kernel_2 = SEAttention(self.in_channels[2])
-        self.aa_kernel_3 = SEAttention(self.in_channels[3])
+        # self.aa_kernel_0 = SEAttention(self.in_channels[0])
+        # self.aa_kernel_1 = SEAttention(self.in_channels[1])
+        # self.aa_kernel_2 = SEAttention(self.in_channels[2])
+        # self.aa_kernel_3 = SEAttention(self.in_channels[3])
 
     def forward(self, x):
         segout = self.backbone(x)
