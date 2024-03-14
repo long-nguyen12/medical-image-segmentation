@@ -139,11 +139,13 @@ class MLPPanHead(BaseDecodeHead):
     def __init__(self, **kwargs):
         super().__init__(input_transform="multiple_select", **kwargs)
 
-        self.fpa = FPABlock(in_channels=self.channels * 4, out_channels=self.channels)
+        self.fpa = FPABlock(
+            in_channels=sum(self.in_channels), out_channels=self.channels
+        )
 
-        for i, dim in enumerate(self.in_channels):
-            self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
-            # self.add_module(f"cbam_c{i+1}", CBAM(dim))
+        # for i, dim in enumerate(self.in_channels):
+        #     self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
+        # self.add_module(f"cbam_c{i+1}", CBAM(dim))
 
         self.dropout = nn.Dropout2d(0.1)
 
