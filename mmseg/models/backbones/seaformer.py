@@ -364,7 +364,7 @@ class Fusion_block(nn.Module):
         #x_l = self.local_dwconv(x_l)
         local_feat = self.local_embedding(x_l)
         global_act = self.global_act(x_g)
-        sig_act = F.interpolate(self.act(global_act), size=(H, W), mode='bicubic', align_corners=False)
+        sig_act = F.interpolate(self.act(global_act), size=(H, W), mode='bilinear', align_corners=False)
         out = local_feat * sig_act
 
 

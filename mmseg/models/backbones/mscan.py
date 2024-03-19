@@ -185,15 +185,6 @@ class MSCAN(nn.Module):
                  pretrained=None):
         super(MSCAN, self).__init__()
         
-        # assert not (init_cfg and pretrained), \
-        #     'init_cfg and pretrained cannot be set at the same time'
-        # if isinstance(pretrained, str):
-        #     warnings.warn('DeprecationWarning: pretrained is deprecated, '
-        #                   'please use "init_cfg" instead')
-        #     self.init_cfg = dict(type='Pretrained', checkpoint=pretrained)
-        # elif pretrained is not None:
-        #     raise TypeError('pretrained must be a str or None')
-
         self.depths = depths
         self.num_stages = num_stages
         
@@ -225,23 +216,6 @@ class MSCAN(nn.Module):
         self.apply(self._init_weights)
         self.init_weights(pretrained=pretrained)
 
-    # def init_weights(self):
-    #     print('init cfg', self.init_cfg)
-    #     if self.init_cfg is None:
-    #         for m in self.modules():
-    #             if isinstance(m, nn.Linear):
-    #                 trunc_normal_init(m, std=.02, bias=0.)
-    #             elif isinstance(m, nn.LayerNorm):
-    #                 constant_init(m, val=1.0, bias=0.)
-    #             elif isinstance(m, nn.Conv2d):
-    #                 fan_out = m.kernel_size[0] * m.kernel_size[
-    #                     1] * m.out_channels
-    #                 fan_out //= m.groups
-    #                 normal_init(
-    #                     m, mean=0, std=math.sqrt(2.0 / fan_out), bias=0)
-    #     else:
-
-    #         super(MSCAN, self).init_weights()
     def init_weights(self, pretrained):
         if isinstance(pretrained, str):
             logger = get_root_logger()

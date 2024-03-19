@@ -11,8 +11,7 @@ from .vit import VisionTransformer
 from .uniformer import UniFormer
 from .uniformer_light import UniFormer_Light
 from .mscan import MSCAN
-from .mix_transformer import mit_b3
-from .rest import rest_base
+from .mix_transformer import mit_b3, mit_b2
 from .convnext import ConvNeXt
 from .davit import DaViT
 from .seaformer import SeaFormer
@@ -22,6 +21,6 @@ from .van import van_b2
 __all__ = [
     'ResNet', 'ResNetV1c', 'ResNetV1d', 'ResNeXt', 'HRNet', 'FastSCNN',
     'ResNeSt', 'MobileNetV2', 'UNet', 'CGNet', 'MobileNetV3',
-    'VisionTransformer', 'UniFormer', 'UniFormer_Light', 'MSCAN', 'mit_b3', 'rest_base',
-    'ConvNeXt', 'DaViT', 'SeaFormer', 'FocalNet', 'van_b2'
+    'VisionTransformer', 'UniFormer', 'UniFormer_Light', 'MSCAN', 'mit_b3',
+    'ConvNeXt', 'DaViT', 'SeaFormer', 'FocalNet', 'van_b2', 'mit_b2'
 ]

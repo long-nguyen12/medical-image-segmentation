@@ -35,8 +35,6 @@ class Dataset(torch.utils.data.Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mask = cv2.imread(mask_path, 0)
 
-        mask = mask[:, :, np.newaxis]
-        mask = mask.astype("float32") / 255
         if self.transform is not None:
             augmented = self.transform(image=image, mask=mask)
             image = augmented["image"]
@@ -44,12 +42,15 @@ class Dataset(torch.utils.data.Dataset):
         else:
             image = cv2.resize(image, (352, 352))
             mask = cv2.resize(mask, (352, 352))
+        
+        image = image.astype('float32') / 255
+        image = image.transpose((2, 0, 1))
 
-        image = image.float()
+        mask = mask[:,:,np.newaxis]
+        mask = mask.astype('float32') / 255
+        mask = mask.transpose((2, 0, 1))
 
-        mask = mask.permute(2, 0, 1)
-
-        return image, mask
+        return np.asarray(image), np.asarray(mask)
 
 
 epsilon = 1e-7
@@ -111,20 +112,13 @@ def inference(model, data_path, args=None):
     print("#" * 20)
     torch.cuda.empty_cache()
     model.eval()
-    device = torch.device("cuda")
+    device = torch.device('cuda')
     X_test = glob("{}/images/*".format(data_path))
     X_test.sort()
     y_test = glob("{}/masks/*".format(data_path))
     y_test.sort()
-
-    transform = A.Compose(
-        [
-            A.Resize(height=352, width=352),
-            ToTensorV2(),
-        ]
-    )
-
-    test_dataset = Dataset(X_test, y_test, transform=transform)
+    
+    test_dataset = Dataset(X_test, y_test)
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=1, shuffle=False, pin_memory=True, drop_last=True
     )
@@ -133,11 +127,14 @@ def inference(model, data_path, args=None):
     prs = []
     for i, pack in enumerate(test_loader, start=1):
         image, gt = pack
-
+        # gt = gt[0][0]
+        # gt = np.asarray(gt, np.float32)
         image = image.to(device)
         gt = gt.to(device)
-        res, _, _, _, _ = model(image)
-
+        res, _ , _, _, _ = model(image)
+        # res = res.sigmoid().data.cpu().numpy().squeeze()
+        # res = (res - res.min()) / (res.max() - res.min() + 1e-8)
+        # pr = res.round()
         pr = torch.sigmoid(res)
         pr = (pr > 0.5).float()
         gts.append(gt)
@@ -159,10 +156,10 @@ if __name__ == "__main__":
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
         model = UNet(
-            backbone=dict(
-                type="MSCAN",
+            backbone=dict(type="MSCAN",
                 # embed_dims=[64, 128, 320, 512],
                 # depths=[3, 3, 12, 3],
+                # depths=[3, 5, 27, 3],
                 # drop_path_rate=0.1
             ),
             decode_head=dict(
@@ -184,13 +181,13 @@ if __name__ == "__main__":
             test_cfg=dict(mode="whole"),
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
-        checkpoint = torch.load(
-            f"snapshots/mscan-base/{_ds}/best.pth", map_location="cpu"
-        )
+        checkpoint = torch.load(f'snapshots/MSCAN-MLPPAN-CBAM/{_ds}/base.pth', map_location='cpu')
         model.load_state_dict(checkpoint["state_dict"], strict=True)
+        print(f'Trained on {_ds}')
+        ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
+        for _ds in ds:
+            print(f'Tested on {_ds}')
+            data_path = args.test_path + "/" + _ds + "/test/" 
+            inference(model, data_path, args)
 
-        # ds = ["CVC-300", "CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir"]
-        # for _ds in ds:
-        print(_ds)
-        data_path = args.test_path + "/" + _ds + "/test/"
-        inference(model, data_path, args)
+        
