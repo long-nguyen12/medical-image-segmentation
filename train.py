@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from albumentations.pytorch import ToTensorV2
 import albumentations as A
 from mmseg import __version__
-from mmseg.models.segmentors import UniPolyp as UNet
+from mmseg.models.segmentors import PolypSegmentation as UNet
 from val import inference
 from schedulers import WarmupPolyLR
 
@@ -105,7 +105,6 @@ def structure_loss(pred, mask):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_epochs", type=int, default=200, help="epoch number")
-    parser.add_argument("--backbone", type=str, default="b3", help="backbone version")
     parser.add_argument("--init_lr", type=float, default=1e-5, help="learning rate")
     parser.add_argument("--batchsize", type=int, default=4, help="training batch size")
     parser.add_argument(
@@ -117,14 +116,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train_path",
         type=str,
-        default="./data/train_dataset/",
+        default="./data/Datasets/",
         help="path to train dataset",
     )
     parser.add_argument("--train_save", type=str, default="MSCAN-MLPPAN-CBAM-1")
     args = parser.parse_args()
 
-    # ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
-    ds = ["CVC-ClinicDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
+    epochs = args.num_epochs
+    ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
+    # ds = ["CVC-ClinicDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
         save_path = "snapshots/{}/{}/".format(args.train_save, _ds)
         if not os.path.exists(save_path):
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
         transform = A.Compose(
             [
-                A.Resize(height=384, width=384),
+                # A.Resize(height=352, width=352),
                 A.HorizontalFlip(),
                 A.VerticalFlip(),
                 A.Transpose(p=0.5),
@@ -210,24 +210,24 @@ if __name__ == "__main__":
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
 
-        epochs = 200
         # ---- flops and params ----
         params = model.parameters()
         optimizer = torch.optim.AdamW(
             params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01
         )
-        # lr_scheduler = WarmupPolyLR(optimizer, 0.6, epochs * _total_step, _total_step * 10, 1e-6)
-        # optimizer = torch.optim.Adam(params, args.init_lr)
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer,
-            T_max=len(train_loader) * epochs,
-            eta_min=args.init_lr / 1000,
+        lr_scheduler = WarmupPolyLR(
+            optimizer, 0.6, epochs * _total_step, _total_step * 10, 1e-5
         )
+        # optimizer = torch.optim.Adam(params, args.init_lr)
+        # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer,
+        #     T_max=len(train_loader) * epochs,
+        #     eta_min=args.init_lr / 1000,
+        # )
 
         start_epoch = 1
 
         best_iou = 0
-        size_rates = [0.75, 1, 1.25]
         loss_record = AvgMeter()
         dice, iou = AvgMeter(), AvgMeter()
 
@@ -243,7 +243,6 @@ if __name__ == "__main__":
                     else:
                         lr_scheduler.step()
 
-                    # for rate in size_rates:
                     optimizer.zero_grad()
                     # ---- data prepare ----
                     images, gts = pack
@@ -268,7 +267,6 @@ if __name__ == "__main__":
                     clip_gradient(optimizer, args.clip)
                     optimizer.step()
                     # ---- recording loss ----
-                    # if rate == 1:
                     loss_record.update(loss.data, args.batchsize)
                     dice.update(dice_score.data, args.batchsize)
                     iou.update(iou_score.data, args.batchsize)

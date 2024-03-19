@@ -43,7 +43,7 @@ class ConvBnRelu(nn.Module):
         if self.add_relu:
             x = self.activation(x)
         if self.interpolate:
-            x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
+            x = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=True)
         return x
 
 
@@ -65,11 +65,11 @@ class AA_kernel(nn.Module):
         return Wx
     
 class AA_kernel_1(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, upscale_mode: str = "bilinear"):
+    def __init__(self, in_channels: int, out_channels: int, upscale_mode: str = "bicubic"):
         super(AA_kernel_1, self).__init__()
 
         self.upscale_mode = upscale_mode
-        self.align_corners = True if upscale_mode == "bilinear" else None
+        self.align_corners = True if upscale_mode == "bicubic" else None
 
         self.conv1 = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),

@@ -12,7 +12,7 @@ import torch
 
 import albumentations as A
 from mmseg import __version__
-from mmseg.models.segmentors import UniPolyp as UNet
+from mmseg.models.segmentors import PolypSegmentation as UNet
 import torch.nn.functional as F
 from albumentations.pytorch import ToTensorV2
 

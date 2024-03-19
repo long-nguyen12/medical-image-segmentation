@@ -46,16 +46,16 @@ class ConvBnRelu(nn.Module):
         if self.add_relu:
             x = self.activation(x)
         if self.interpolate:
-            x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
+            x = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=True)
         return x
 
 
 class FPABlock(nn.Module):
-    def __init__(self, in_channels, out_channels, upscale_mode="bilinear"):
+    def __init__(self, in_channels, out_channels, upscale_mode="bicubic"):
         super(FPABlock, self).__init__()
 
         self.upscale_mode = upscale_mode
-        if self.upscale_mode == "bilinear":
+        if self.upscale_mode == "bicubic":
             self.align_corners = True
         else:
             self.align_corners = False
@@ -174,7 +174,7 @@ class MLPPanHead(BaseDecodeHead):
             cf = eval(f"self.cbam_c{i+1}")(cf)
             # cf = eval(f"self.linear_c{i+1}")(cf).permute(0, 2, 1).reshape(B, -1, *cf.shape[-2:])
             outs.append(
-                F.interpolate(cf, size=(H, W), mode="bilinear", align_corners=True)
+                F.interpolate(cf, size=(H, W), mode="bicubic", align_corners=True)
             )
 
         seg = self.fpa(torch.cat(outs, dim=1))
