@@ -68,15 +68,15 @@ class UniPolyp(nn.Module):
         self.ra3_conv2 = Conv(self.in_channels[3] // 2, self.in_channels[3] // 4,3,1,padding=1,bn_acti=True)
         self.ra3_conv3 = Conv(self.in_channels[3] // 4,1,3,1,padding=1,bn_acti=True)
         
-        self.aa_kernel_0 = AA_kernel(self.in_channels[0],self.in_channels[0])
-        self.aa_kernel_1 = AA_kernel(self.in_channels[1],self.in_channels[1])
-        self.aa_kernel_2 = AA_kernel(self.in_channels[2],self.in_channels[2])
-        self.aa_kernel_3 = AA_kernel(self.in_channels[3],self.in_channels[3])
+        # self.aa_kernel_0 = AA_kernel(self.in_channels[0],self.in_channels[0])
+        # self.aa_kernel_1 = AA_kernel(self.in_channels[1],self.in_channels[1])
+        # self.aa_kernel_2 = AA_kernel(self.in_channels[2],self.in_channels[2])
+        # self.aa_kernel_3 = AA_kernel(self.in_channels[3],self.in_channels[3])
 
-        # self.aa_kernel_0 = ECA(self.in_channels[0])
-        # self.aa_kernel_1 = ECA(self.in_channels[1])
-        # self.aa_kernel_2 = ECA(self.in_channels[2])
-        # self.aa_kernel_3 = ECA(self.in_channels[3])
+        self.aa_kernel_0 = SEAttention(self.in_channels[0])
+        self.aa_kernel_1 = SEAttention(self.in_channels[1])
+        self.aa_kernel_2 = SEAttention(self.in_channels[2])
+        self.aa_kernel_3 = SEAttention(self.in_channels[3])
         
     def forward(self, x):
         segout = self.backbone(x)

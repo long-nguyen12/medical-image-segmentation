@@ -1,18 +1,10 @@
 import argparse
-import logging
 import os
-import random
-import sys
-import time
 import numpy as np
 import cv2
-from tqdm import tqdm
 from glob import glob
-import matplotlib.pyplot as plt
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
 
 from utils import clip_gradient, AvgMeter
 from torch.autograd import Variable
@@ -20,14 +12,12 @@ from datetime import datetime
 import torch.nn.functional as F
 
 from albumentations.pytorch import ToTensorV2
-from albumentations.augmentations import transforms
-from albumentations.core.composition import Compose, OneOf
 import albumentations as A
 from mmseg import __version__
 from mmseg.models.segmentors import UniPolyp as UNet
 from val import inference
 from schedulers import WarmupPolyLR
-from lr_scheduler import LR_Scheduler
+
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -54,19 +44,20 @@ class Dataset(torch.utils.data.Dataset):
         else:
             image = cv2.resize(image, (352, 352))
             mask = cv2.resize(mask, (352, 352))
-        
+
         if self.color_transform:
             augmented = self.color_transform(image=image)
-            image = augmented['image']
+            image = augmented["image"]
 
-        image = image.astype('float32') / 255
+        image = image.astype("float32") / 255
         image = image.transpose((2, 0, 1))
 
-        mask = mask[:,:,np.newaxis]
-        mask = mask.astype('float32') / 255
+        mask = mask[:, :, np.newaxis]
+        mask = mask.astype("float32") / 255
         mask = mask.transpose((2, 0, 1))
 
         return np.asarray(image), np.asarray(mask)
+
 
 epsilon = 1e-7
 
@@ -96,15 +87,18 @@ def iou_m(y_true, y_pred):
     recall = recall_m(y_true, y_pred)
     return recall * precision / (recall + precision - recall * precision + epsilon)
 
+
 def structure_loss(pred, mask):
-    weit = 1 + 5*torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
-    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduction='mean')
-    wbce = (weit*wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
+    weit = 1 + 5 * torch.abs(
+        F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask
+    )
+    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduction="mean")
+    wbce = (weit * wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
 
     pred = torch.sigmoid(pred)
-    inter = ((pred * mask)*weit).sum(dim=(2, 3))
-    union = ((pred + mask)*weit).sum(dim=(2, 3))
-    wiou = 1 - (inter + 1)/(union - inter+1)
+    inter = ((pred * mask) * weit).sum(dim=(2, 3))
+    union = ((pred + mask) * weit).sum(dim=(2, 3))
+    wiou = 1 - (inter + 1) / (union - inter + 1)
     return (wbce + wiou).mean()
 
 
@@ -112,8 +106,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_epochs", type=int, default=200, help="epoch number")
     parser.add_argument("--backbone", type=str, default="b3", help="backbone version")
-    parser.add_argument("--init_lr", type=float, default=1e-4, help="learning rate")
-    parser.add_argument("--batchsize", type=int, default=4, help="training batch size")
+    parser.add_argument("--init_lr", type=float, default=1e-5, help="learning rate")
+    parser.add_argument("--batchsize", type=int, default=8, help="training batch size")
     parser.add_argument(
         "--init_trainsize", type=int, default=352, help="training dataset size"
     )
@@ -127,14 +121,8 @@ if __name__ == "__main__":
         help="path to train dataset",
     )
     parser.add_argument("--train_save", type=str, default="MSCAN-MLPPAN-CBAM-1")
-    parser.add_argument(
-        "--resume_path",
-        type=str,
-        help="path to checkpoint for resume training",
-        default="",
-    )
     args = parser.parse_args()
-    
+
     # ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     ds = ["CVC-ClinicDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
@@ -157,16 +145,33 @@ if __name__ == "__main__":
                 A.HorizontalFlip(),
                 A.VerticalFlip(),
                 A.Transpose(p=0.5),
-                A.Affine(scale=(0.5,1.5), translate_percent=(-0.125,0.125), rotate=(-180,180), shear=(-22.5,22), always_apply=True),
+                A.Affine(
+                    scale=(0.5, 1.5),
+                    translate_percent=(-0.125, 0.125),
+                    rotate=(-180, 180),
+                    shear=(-22.5, 22),
+                    always_apply=True,
+                ),
             ]
         )
         color_transform = A.Compose(
             [
-                A.ColorJitter(brightness=(0.6,1.6), contrast=0.2, saturation=0.1, hue=0.01, always_apply=True),
+                A.ColorJitter(
+                    brightness=(0.6, 1.6),
+                    contrast=0.2,
+                    saturation=0.1,
+                    hue=0.01,
+                    always_apply=True,
+                ),
             ]
         )
-            
-        train_dataset = Dataset(train_img_paths, train_mask_paths, transform=transform, color_transform=color_transform)
+
+        train_dataset = Dataset(
+            train_img_paths,
+            train_mask_paths,
+            transform=transform,
+            color_transform=color_transform,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=args.batchsize,
@@ -177,9 +182,10 @@ if __name__ == "__main__":
         print(len(train_loader))
 
         _total_step = len(train_loader)
-        
+
         model = UNet(
-            backbone=dict(type="MSCAN",
+            backbone=dict(
+                type="MSCAN",
                 # depths=[3, 5, 27, 3],
                 # depths=[3, 3, 12, 3],
                 # drop_path_rate=0.1
@@ -204,11 +210,12 @@ if __name__ == "__main__":
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
 
-        
         epochs = 200
         # ---- flops and params ----
         params = model.parameters()
-        optimizer = torch.optim.AdamW(params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01)
+        optimizer = torch.optim.AdamW(
+            params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01
+        )
         # lr_scheduler = WarmupPolyLR(optimizer, 0.6, epochs * _total_step, _total_step * 10, 1e-6)
         # optimizer = torch.optim.Adam(params, args.init_lr)
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -242,11 +249,17 @@ if __name__ == "__main__":
                     images, gts = pack
                     images = Variable(images).cuda()
                     gts = Variable(gts).cuda()
-                    
+
                     # ---- forward ----
                     map0, map4, map3, map2, map1 = model(images)
-                    loss =  structure_loss(map1, gts) + structure_loss(map0, gts) + structure_loss(map2, gts) + structure_loss(map3, gts) + structure_loss(map4, gts)
-                    
+                    loss = (
+                        structure_loss(map1, gts)
+                        + structure_loss(map0, gts)
+                        + structure_loss(map2, gts)
+                        + structure_loss(map3, gts)
+                        + structure_loss(map4, gts)
+                    )
+
                     # ---- metrics ----
                     dice_score = dice_m(map0, gts)
                     iou_score = iou_m(map0, gts)
@@ -260,9 +273,7 @@ if __name__ == "__main__":
                     dice.update(dice_score.data, args.batchsize)
                     iou.update(iou_score.data, args.batchsize)
 
-                    # lr_scheduler.step()
-
-                    # ---- train visualization ----
+                # ---- train visualization ----
                 print(
                     "{} Training Epoch [{:03d}/{:03d}], "
                     "[loss: {:0.4f}, dice: {:0.4f}, iou: {:0.4f}]".format(
@@ -276,7 +287,9 @@ if __name__ == "__main__":
                 )
 
             if epoch % 5 == 0:
-                mean_iou, mean_dice, mean_precision, mean_recall = inference(model, f"{args.train_path}/{_ds}/test/")
+                mean_iou, mean_dice, mean_precision, mean_recall = inference(
+                    model, f"{args.train_path}/{_ds}/test/"
+                )
                 if mean_iou > best_iou:
                     best_iou = mean_iou
                     ckpt_path = save_path + "base.pth"

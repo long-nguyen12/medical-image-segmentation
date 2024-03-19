@@ -5,10 +5,10 @@ import math
 from timm.layers import trunc_normal_
 from torch import Tensor
 from ..builder import HEADS
-from ...utils import Upsample
 from .decode_head import BaseDecodeHead
 from ..segmentors.lib.cbam import CBAM
 from ..segmentors.lib.bam import BAMBlock as BAM
+
 
 class ConvBnRelu(nn.Module):
     def __init__(
@@ -75,21 +75,33 @@ class FPABlock(nn.Module):
         # midddle branch
         self.conv0 = ConvBnRelu(in_channels, out_channels, 1, 1, 0)
 
-        self.conv13_0 = nn.Conv2d(out_channels, out_channels, (1,3), padding=(0, 1), groups=out_channels)
-        self.conv13_1 = nn.Conv2d(out_channels, out_channels, (3,1), padding=(1, 0), groups=out_channels)
+        self.conv13_0 = nn.Conv2d(
+            out_channels, out_channels, (1, 3), padding=(0, 1), groups=out_channels
+        )
+        self.conv13_1 = nn.Conv2d(
+            out_channels, out_channels, (3, 1), padding=(1, 0), groups=out_channels
+        )
 
-        self.conv15_0 = nn.Conv2d(out_channels, out_channels, (1,5), padding=(0,2), groups=out_channels)
-        self.conv15_1 = nn.Conv2d(out_channels, out_channels, (5,1), padding=(2,0), groups=out_channels)
+        self.conv15_0 = nn.Conv2d(
+            out_channels, out_channels, (1, 5), padding=(0, 2), groups=out_channels
+        )
+        self.conv15_1 = nn.Conv2d(
+            out_channels, out_channels, (5, 1), padding=(2, 0), groups=out_channels
+        )
 
-        self.conv17_0 = nn.Conv2d(out_channels, out_channels, (1,7), padding=(0, 3), groups=out_channels)
-        self.conv17_1 = nn.Conv2d(out_channels, out_channels, (7,1), padding=(3, 0), groups=out_channels)
+        self.conv17_0 = nn.Conv2d(
+            out_channels, out_channels, (1, 7), padding=(0, 3), groups=out_channels
+        )
+        self.conv17_1 = nn.Conv2d(
+            out_channels, out_channels, (7, 1), padding=(3, 0), groups=out_channels
+        )
 
         self.mixer = ConvBnRelu(out_channels, out_channels, 1)
 
     def forward(self, x):
         h, w = x.size(2), x.size(3)
         b1 = self.branch1(x)
-        
+
         mid = self.conv0(x)
 
         c13 = self.conv13_0(mid)
@@ -107,10 +119,10 @@ class FPABlock(nn.Module):
         x = torch.mul(mid, att)
 
         x = x + b1
-        
+
         return x
-    
-    
+
+
 class MLP(nn.Module):
     def __init__(self, dim, embed_dim):
         super().__init__()
@@ -125,10 +137,12 @@ class MLP(nn.Module):
 @HEADS.register_module()
 class MLPPanHead(BaseDecodeHead):
     def __init__(self, **kwargs):
-        super().__init__(input_transform='multiple_select', **kwargs)
-        
-        self.fpa = FPABlock(in_channels=sum(self.in_channels[1:]), out_channels=self.channels)
-        
+        super().__init__(input_transform="multiple_select", **kwargs)
+
+        self.fpa = FPABlock(
+            in_channels=sum(self.in_channels[1:]), out_channels=self.channels
+        )
+
         for i, dim in enumerate(self.in_channels):
             # self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
             self.add_module(f"cbam_c{i+1}", CBAM(dim))
@@ -139,7 +153,7 @@ class MLPPanHead(BaseDecodeHead):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
+            trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
@@ -159,7 +173,9 @@ class MLPPanHead(BaseDecodeHead):
         for i, cf in enumerate(features[1:]):
             cf = eval(f"self.cbam_c{i+2}")(cf)
             # cf = eval(f"self.linear_c{i+1}")(cf).permute(0, 2, 1).reshape(B, -1, *cf.shape[-2:])
-            outs.append(F.interpolate(cf, size=(H, W), mode='bilinear', align_corners=True))
+            outs.append(
+                F.interpolate(cf, size=(H, W), mode="bilinear", align_corners=True)
+            )
 
         seg = self.fpa(torch.cat(outs, dim=1))
         output = self.cls_seg(self.dropout(seg))
