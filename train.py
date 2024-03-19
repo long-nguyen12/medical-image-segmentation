@@ -104,7 +104,7 @@ def structure_loss(pred, mask):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_epochs", type=int, default=200, help="epoch number")
+    parser.add_argument("--num_epochs", type=int, default=100, help="epoch number")
     parser.add_argument("--init_lr", type=float, default=1e-4, help="learning rate")
     parser.add_argument("--batchsize", type=int, default=4, help="training batch size")
     parser.add_argument(
@@ -119,12 +119,11 @@ if __name__ == "__main__":
         default="./data/Datasets/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="MSCAN-MLPPAN-CBAM-1")
+    parser.add_argument("--train_save", type=str, default="polyp-seg")
     args = parser.parse_args()
 
     epochs = args.num_epochs
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
-    # ds = ["CVC-ClinicDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
         save_path = "snapshots/{}/{}/".format(args.train_save, _ds)
         if not os.path.exists(save_path):
@@ -216,7 +215,7 @@ if __name__ == "__main__":
             params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01
         )
         lr_scheduler = WarmupPolyLR(
-            optimizer, 0.6, epochs * _total_step, _total_step * 10, 1e-5
+            optimizer, 0.6, epochs * _total_step, _total_step * 10, 0.01
         )
         # optimizer = torch.optim.Adam(params, args.init_lr)
         # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
