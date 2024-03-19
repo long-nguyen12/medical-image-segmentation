@@ -1,4 +1,3 @@
-from .hrnet import HRNet
 from .unet import UNet
 from .vit import VisionTransformer
 from .uniformer import UniFormer
@@ -10,7 +9,6 @@ from .davit import DaViT
 from .van import van_b2
 
 __all__ = [
-    "HRNet",
     "UNet",
     "VisionTransformer",
     "UniFormer",
