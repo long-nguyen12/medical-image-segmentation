@@ -107,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=200, help="epoch number")
     parser.add_argument("--backbone", type=str, default="b3", help="backbone version")
     parser.add_argument("--init_lr", type=float, default=1e-5, help="learning rate")
-    parser.add_argument("--batchsize", type=int, default=8, help="training batch size")
+    parser.add_argument("--batchsize", type=int, default=4, help="training batch size")
     parser.add_argument(
         "--init_trainsize", type=int, default=352, help="training dataset size"
     )

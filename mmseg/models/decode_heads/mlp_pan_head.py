@@ -140,7 +140,7 @@ class MLPPanHead(BaseDecodeHead):
         super().__init__(input_transform="multiple_select", **kwargs)
 
         self.fpa = FPABlock(
-            in_channels=sum(self.in_channels[1:]), out_channels=self.channels
+            in_channels=sum(self.in_channels), out_channels=self.channels
         )
 
         for i, dim in enumerate(self.in_channels):
@@ -170,8 +170,8 @@ class MLPPanHead(BaseDecodeHead):
         B, _, H, W = features[0].shape
         outs = []
 
-        for i, cf in enumerate(features[1:]):
-            cf = eval(f"self.cbam_c{i+2}")(cf)
+        for i, cf in enumerate(features):
+            cf = eval(f"self.cbam_c{i+1}")(cf)
             # cf = eval(f"self.linear_c{i+1}")(cf).permute(0, 2, 1).reshape(B, -1, *cf.shape[-2:])
             outs.append(
                 F.interpolate(cf, size=(H, W), mode="bilinear", align_corners=True)
