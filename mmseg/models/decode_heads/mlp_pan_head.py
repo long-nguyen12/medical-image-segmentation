@@ -116,7 +116,7 @@ class FPABlock(nn.Module):
         att = c13 + c15 + c17
         att = self.mixer(att)
 
-        x = torch.mul(mid, att)
+        x = torch.mul(x, att)
 
         x = x + b1
 
