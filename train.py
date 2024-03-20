@@ -116,10 +116,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train_path",
         type=str,
-        default="./data/Datasets/",
+        default="./data/dataset/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-1")
     args = parser.parse_args()
 
     epochs = args.num_epochs
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
         transform = A.Compose(
             [
-                # A.Resize(height=352, width=352),
+                A.Resize(height=352, width=352),
                 A.HorizontalFlip(),
                 A.VerticalFlip(),
                 A.Transpose(p=0.5),
