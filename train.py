@@ -1,22 +1,21 @@
 import argparse
 import os
-import numpy as np
-import cv2
+from datetime import datetime
 from glob import glob
 
-import torch
-
-from utils import clip_gradient, AvgMeter
-from torch.autograd import Variable
-from datetime import datetime
-import torch.nn.functional as F
-
-from albumentations.pytorch import ToTensorV2
 import albumentations as A
+import cv2
+import numpy as np
+import torch
+import torch.nn.functional as F
+from albumentations.pytorch import ToTensorV2
+from torch.autograd import Variable
+
 from mmseg import __version__
 from mmseg.models.segmentors import PolypSegmentation as UNet
-from val import inference
 from schedulers import WarmupPolyLR
+from utils import AvgMeter, clip_gradient
+from val import inference
 
 
 class Dataset(torch.utils.data.Dataset):
