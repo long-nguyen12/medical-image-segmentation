@@ -141,6 +141,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
+    parser.add_argument("--train_save", type=str, default="polyp-seg")
     args = parser.parse_args()
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
@@ -172,7 +173,7 @@ if __name__ == "__main__":
             pretrained="pretrained/mscan_b.pth",
         ).cuda()
         checkpoint = torch.load(
-            f"snapshots/MSCAN-MLPPAN-CBAM/{_ds}/base.pth", map_location="cpu"
+            f"snapshots/{args.train_save}/{_ds}/base.pth", map_location="cpu"
         )
         model.load_state_dict(checkpoint["state_dict"], strict=True)
         print(f"Trained on {_ds}")
