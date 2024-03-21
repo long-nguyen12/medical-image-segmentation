@@ -132,8 +132,8 @@ if __name__ == "__main__":
 
         train_img_paths = []
         train_mask_paths = []
-        train_img_paths = glob("{}/{}/train/images/*".format(args.train_path, _ds))
-        train_mask_paths = glob("{}/{}/train/masks/*".format(args.train_path, _ds))
+        train_img_paths = glob("{}/{}/images/*".format(args.train_path, _ds))
+        train_mask_paths = glob("{}/{}/masks/*".format(args.train_path, _ds))
         train_img_paths.sort()
         train_mask_paths.sort()
 
