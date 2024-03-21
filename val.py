@@ -9,6 +9,7 @@ from albumentations.pytorch import ToTensorV2
 
 from mmseg import __version__
 from mmseg.models.segmentors import PolypSegmentation as UNet
+from eval_func import Fmeasure_calu, StructureMeasure, EnhancedMeasure
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -50,30 +51,30 @@ class Dataset(torch.utils.data.Dataset):
 epsilon = 1e-7
 
 
-def recall_m(y_true, y_pred):
-    true_positives = torch.sum(torch.round(torch.clip(y_true * y_pred, 0, 1)))
-    possible_positives = torch.sum(torch.round(torch.clip(y_true, 0, 1)))
+def recall_np(y_true, y_pred):
+    true_positives = np.sum(np.round(np.clip(y_true * y_pred, 0, 1)))
+    possible_positives = np.sum(np.round(np.clip(y_true, 0, 1)))
     recall = true_positives / (possible_positives + epsilon)
     return recall
 
 
-def precision_m(y_true, y_pred):
-    true_positives = torch.sum(torch.round(torch.clip(y_true * y_pred, 0, 1)))
-    predicted_positives = torch.sum(torch.round(torch.clip(y_pred, 0, 1)))
+def precision_np(y_true, y_pred):
+    true_positives = np.sum(np.round(np.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = np.sum(np.round(np.clip(y_pred, 0, 1)))
     precision = true_positives / (predicted_positives + epsilon)
     return precision
 
 
-def dice_m(y_true, y_pred):
-    precision = precision_m(y_true, y_pred)
-    recall = recall_m(y_true, y_pred)
+def dice_np(y_true, y_pred):
+    precision = precision_np(y_true, y_pred)
+    recall = recall_np(y_true, y_pred)
     return 2 * ((precision * recall) / (precision + recall + epsilon))
 
 
-def iou_m(y_true, y_pred):
-    precision = precision_m(y_true, y_pred)
-    recall = recall_m(y_true, y_pred)
-    return recall * precision / (recall + precision - recall * precision + epsilon)
+def iou_np(y_true, y_pred):
+    intersection = np.sum(np.round(np.clip(y_true * y_pred, 0, 1)))
+    union = np.sum(y_true) + np.sum(y_pred) - intersection
+    return intersection / (union + epsilon)
 
 
 def get_scores(gts, prs):
@@ -81,20 +82,27 @@ def get_scores(gts, prs):
     mean_recall = 0
     mean_iou = 0
     mean_dice = 0
+    s_measure = 0
+    e_measure = 0
+    f_measure = []
+    threshold = []
     for gt, pr in zip(gts, prs):
-        mean_precision += precision_m(gt, pr)
-        mean_recall += recall_m(gt, pr)
-        mean_iou += iou_m(gt, pr)
-        mean_dice += dice_m(gt, pr)
-
+        mean_precision += precision_np(gt, pr)
+        mean_recall += recall_np(gt, pr)
+        mean_iou += iou_np(gt, pr)
+        mean_dice += dice_np(gt, pr)
+        s_measure += StructureMeasure(pr, gt)
+        e_measure += EnhancedMeasure(pr, gt)
     mean_precision /= len(gts)
     mean_recall /= len(gts)
     mean_iou /= len(gts)
     mean_dice /= len(gts)
+    s_measure /= len(gts)
+    e_measure /= len(gts)
 
     print(
-        "scores: dice={}, miou={}, precision={}, recall={}".format(
-            mean_dice, mean_iou, mean_precision, mean_recall
+        "scores: dice={}, miou={}, precision={}, recall={}, s_measure={}, e_measure={}".format(
+            mean_dice, mean_iou, mean_precision, mean_recall, s_measure, e_measure
         )
     )
 
@@ -121,11 +129,17 @@ def inference(model, data_path, args=None):
     prs = []
     for i, pack in enumerate(test_loader, start=1):
         image, gt = pack
+        gt = gt[0][0]
+        gt = np.asarray(gt, np.float32)
         image = image.to(device)
-        gt = gt.to(device)
         res, _, _, _, _ = model(image)
-        pr = torch.sigmoid(res)
-        pr = (pr > 0.5).float()
+        # pr = torch.sigmoid(res)
+        # pr = (pr > 0.5).float()
+        # gts.append(gt)
+        # prs.append(pr)
+        res = res.sigmoid().data.cpu().numpy().squeeze()
+        res = (res - res.min()) / (res.max() - res.min() + 1e-8)
+        pr = res.round()
         gts.append(gt)
         prs.append(pr)
     return get_scores(gts, prs)
@@ -141,8 +155,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-l")
     args = parser.parse_args()
+
+    device = torch.device("cuda")
+
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
         model = UNet(
@@ -150,7 +167,7 @@ if __name__ == "__main__":
                 type="MSCAN",
                 # embed_dims=[64, 128, 320, 512],
                 # depths=[3, 3, 12, 3],
-                # depths=[3, 5, 27, 3],
+                depths=[3, 5, 27, 3],
                 # drop_path_rate=0.1
             ),
             decode_head=dict(
@@ -170,15 +187,15 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mscan_b.pth",
-        ).cuda()
+            pretrained="pretrained/mscan_l.pth",
+        ).to(device)
         checkpoint = torch.load(
             f"snapshots/{args.train_save}/{_ds}/base.pth", map_location="cpu"
         )
         model.load_state_dict(checkpoint["state_dict"], strict=True)
         print(f"Trained on {_ds}")
-        ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
-        for _ds in ds:
-            print(f"Tested on {_ds}")
-            data_path = args.test_path + "/" + _ds + "/test/"
-            inference(model, data_path, args)
+        # ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
+        # for _ds in ds:
+        #     print(f"Tested on {_ds}")
+        data_path = f"{args.test_path}/{_ds}/test/"
+        inference(model, data_path, args)
