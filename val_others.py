@@ -112,7 +112,7 @@ def inference(model, data_path, args=None):
     print("#" * 20)
     torch.cuda.empty_cache()
     model.eval()
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     X_test = glob("{}/images/*".format(data_path))
     X_test.sort()
     y_test = glob("{}/masks/*".format(data_path))
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_save", type=str, default="polyp-seg")
     args = parser.parse_args()
 
-    device = torch.device("cpu")
+    device = torch.device("cuda")
 
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
