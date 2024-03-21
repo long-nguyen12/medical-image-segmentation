@@ -12,7 +12,7 @@ from albumentations.pytorch import ToTensorV2
 from torch.autograd import Variable
 
 from mmseg import __version__
-from mmseg.models.segmentors import PolypSegmentation as UNet
+from mmseg.models.segmentors import ColonFormer as UNet
 from schedulers import WarmupPolyLR
 from utils import AvgMeter, clip_gradient
 from val import inference
@@ -187,7 +187,7 @@ if __name__ == "__main__":
                 type=f"{args.backbone}",
             ),
             decode_head=dict(
-                type="MLPPanHead",
+                type="UPerHead",
                 in_channels=[64, 128, 320, 512],
                 in_index=[0, 1, 2, 3],
                 channels=128,
@@ -204,22 +204,22 @@ if __name__ == "__main__":
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
             pretrained=f"pretrained/{args.backbone}.pth",
-        ).cuda()
+        )
 
         # ---- flops and params ----
         params = model.parameters()
-        optimizer = torch.optim.AdamW(
-            params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01
-        )
-        lr_scheduler = WarmupPolyLR(
-            optimizer, 0.6, epochs * _total_step, _total_step * 10, 0.01
-        )
-        # optimizer = torch.optim.Adam(params, args.init_lr)
-        # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        #     optimizer,
-        #     T_max=len(train_loader) * epochs,
-        #     eta_min=args.init_lr / 1000,
+        # optimizer = torch.optim.AdamW(
+        #     params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01
         # )
+        # lr_scheduler = WarmupPolyLR(
+        #     optimizer, 0.6, epochs * _total_step, _total_step * 10, 0.01
+        # )
+        optimizer = torch.optim.Adam(params, args.init_lr)
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=len(train_loader) * epochs,
+            eta_min=args.init_lr / 1000,
+        )
 
         start_epoch = 1
 
