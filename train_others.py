@@ -204,7 +204,7 @@ if __name__ == "__main__":
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
             pretrained=f"pretrained/{args.backbone}.pth",
-        )
+        ).cuda()
 
         # ---- flops and params ----
         params = model.parameters()
