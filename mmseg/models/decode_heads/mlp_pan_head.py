@@ -8,7 +8,7 @@ from ..builder import HEADS
 from .decode_head import BaseDecodeHead
 from ..segmentors.lib.cbam import CBAM
 from ..segmentors.lib.bam import BAMBlock as BAM
-
+from ..segmentors.lib.attentions import SGE
 
 class ConvBnRelu(nn.Module):
     def __init__(
@@ -145,7 +145,8 @@ class MLPPanHead(BaseDecodeHead):
 
         for i, dim in enumerate(self.in_channels):
             # self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
-            self.add_module(f"cbam_c{i+1}", CBAM(dim))
+            # self.add_module(f"cbam_c{i+1}", CBAM(dim))
+            self.add_module(f"cbam_c{i+1}", SGE())
 
         self.dropout = nn.Dropout2d(0.1)
 
