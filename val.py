@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-l")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-s")
     args = parser.parse_args()
 
     device = torch.device("cuda")
@@ -187,7 +187,7 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mscan_l.pth",
+            pretrained="pretrained/mscan_s.pth",
         ).to(device)
         checkpoint = torch.load(
             f"snapshots/{args.train_save}/{_ds}/base.pth", map_location="cpu"

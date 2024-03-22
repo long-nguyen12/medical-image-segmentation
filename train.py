@@ -118,7 +118,7 @@ if __name__ == "__main__":
         default="./data/dataset/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-l")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-s")
     args = parser.parse_args()
 
     epochs = args.num_epochs
