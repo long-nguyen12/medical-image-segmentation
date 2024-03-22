@@ -6,7 +6,8 @@ from .. import builder
 from ..builder import SEGMENTORS
 
 from .lib.conv_layer import Conv, BNPReLU
-from .lib.axial_atten import AA_kernel, SEAttention, SCSEModule, ECA, PSA
+from .lib.axial_atten import AA_kernel, PSA
+from .lib.attentions import SGE, ECA
 from .lib.context_module import CFPModule
 from .lib.cbam import CBAM
 
@@ -38,33 +39,81 @@ class PolypSegmentation(nn.Module):
         self.backbone.init_weights(pretrained=pretrained)
         self.decode_head.init_weights()
         self.in_channels = decode_head["in_channels"]
-        self.CFP_0 = CFPModule(self.in_channels[0], d=8)
-        self.CFP_1 = CFPModule(self.in_channels[1], d=8)
-        self.CFP_2 = CFPModule(self.in_channels[2], d=8)
-        self.CFP_3 = CFPModule(self.in_channels[3], d=8)
+        # self.CFP_0 = CFPModule(self.in_channels[0], d=8)
+        # self.CFP_1 = CFPModule(self.in_channels[1], d=8)
+        # self.CFP_2 = CFPModule(self.in_channels[2], d=8)
+        # self.CFP_3 = CFPModule(self.in_channels[3], d=8)
+        self.CFP_0 = SGE()
+        self.CFP_1 = SGE()
+        self.CFP_2 = SGE()
+        self.CFP_3 = SGE()
 
         ###### dilation rate 4, 62.8
 
-        self.ra0_conv1 = Conv(self.in_channels[0],self.in_channels[0] // 2,3,1,padding=1,bn_acti=True)
-        self.ra0_conv2 = Conv(self.in_channels[0] // 2, self.in_channels[0] // 4,3,1,padding=1,bn_acti=True)
-        self.ra0_conv3 = Conv(self.in_channels[0] // 4,1,3,1,padding=1,bn_acti=True)
+        self.ra0_conv1 = Conv(
+            self.in_channels[0], self.in_channels[0] // 2, 3, 1, padding=1, bn_acti=True
+        )
+        self.ra0_conv2 = Conv(
+            self.in_channels[0] // 2,
+            self.in_channels[0] // 4,
+            3,
+            1,
+            padding=1,
+            bn_acti=True,
+        )
+        self.ra0_conv3 = Conv(
+            self.in_channels[0] // 4, 1, 3, 1, padding=1, bn_acti=True
+        )
 
-        self.ra1_conv1 = Conv(self.in_channels[1],self.in_channels[1] // 2,3,1,padding=1,bn_acti=True)
-        self.ra1_conv2 = Conv(self.in_channels[1] // 2, self.in_channels[1] // 4,3,1,padding=1,bn_acti=True)
-        self.ra1_conv3 = Conv(self.in_channels[1] // 4,1,3,1,padding=1,bn_acti=True)
-        
-        self.ra2_conv1 = Conv(self.in_channels[2], self.in_channels[2] // 2,3,1,padding=1,bn_acti=True)
-        self.ra2_conv2 = Conv(self.in_channels[2] // 2, self.in_channels[2] // 4,3,1,padding=1,bn_acti=True)
-        self.ra2_conv3 = Conv(self.in_channels[2] // 4,1,3,1,padding=1,bn_acti=True)
-        
-        self.ra3_conv1 = Conv(self.in_channels[3], self.in_channels[3] // 2,3,1,padding=1,bn_acti=True)
-        self.ra3_conv2 = Conv(self.in_channels[3] // 2, self.in_channels[3] // 4,3,1,padding=1,bn_acti=True)
-        self.ra3_conv3 = Conv(self.in_channels[3] // 4,1,3,1,padding=1,bn_acti=True)
+        self.ra1_conv1 = Conv(
+            self.in_channels[1], self.in_channels[1] // 2, 3, 1, padding=1, bn_acti=True
+        )
+        self.ra1_conv2 = Conv(
+            self.in_channels[1] // 2,
+            self.in_channels[1] // 4,
+            3,
+            1,
+            padding=1,
+            bn_acti=True,
+        )
+        self.ra1_conv3 = Conv(
+            self.in_channels[1] // 4, 1, 3, 1, padding=1, bn_acti=True
+        )
 
-        self.aa_kernel_0 = PSA(self.in_channels[0])
-        self.aa_kernel_1 = PSA(self.in_channels[1])
-        self.aa_kernel_2 = PSA(self.in_channels[2])
-        self.aa_kernel_3 = PSA(self.in_channels[3])
+        self.ra2_conv1 = Conv(
+            self.in_channels[2], self.in_channels[2] // 2, 3, 1, padding=1, bn_acti=True
+        )
+        self.ra2_conv2 = Conv(
+            self.in_channels[2] // 2,
+            self.in_channels[2] // 4,
+            3,
+            1,
+            padding=1,
+            bn_acti=True,
+        )
+        self.ra2_conv3 = Conv(
+            self.in_channels[2] // 4, 1, 3, 1, padding=1, bn_acti=True
+        )
+
+        self.ra3_conv1 = Conv(
+            self.in_channels[3], self.in_channels[3] // 2, 3, 1, padding=1, bn_acti=True
+        )
+        self.ra3_conv2 = Conv(
+            self.in_channels[3] // 2,
+            self.in_channels[3] // 4,
+            3,
+            1,
+            padding=1,
+            bn_acti=True,
+        )
+        self.ra3_conv3 = Conv(
+            self.in_channels[3] // 4, 1, 3, 1, padding=1, bn_acti=True
+        )
+
+        self.aa_kernel_0 = ECA(self.in_channels[0])
+        self.aa_kernel_1 = ECA(self.in_channels[1])
+        self.aa_kernel_2 = ECA(self.in_channels[2])
+        self.aa_kernel_3 = ECA(self.in_channels[3])
 
     def forward(self, x):
         segout = self.backbone(x)
