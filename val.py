@@ -165,9 +165,9 @@ if __name__ == "__main__":
         model = UNet(
             backbone=dict(
                 type="MSCAN",
-                # embed_dims=[64, 128, 320, 512],
+                depths=[2, 2, 4, 2],
                 # depths=[3, 3, 12, 3],
-                depths=[3, 5, 27, 3],
+                # depths=[3, 5, 27, 3],
                 # drop_path_rate=0.1
             ),
             decode_head=dict(
