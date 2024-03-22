@@ -6,7 +6,7 @@ from .. import builder
 from ..builder import SEGMENTORS
 
 from .lib.conv_layer import Conv, BNPReLU
-from .lib.axial_atten import AA_kernel, SEAttention, SCSEModule, ECA
+from .lib.axial_atten import AA_kernel, SEAttention, SCSEModule, ECA, PSA
 from .lib.context_module import CFPModule
 from .lib.cbam import CBAM
 
@@ -61,10 +61,10 @@ class PolypSegmentation(nn.Module):
         self.ra3_conv2 = Conv(self.in_channels[3] // 2, self.in_channels[3] // 4,3,1,padding=1,bn_acti=True)
         self.ra3_conv3 = Conv(self.in_channels[3] // 4,1,3,1,padding=1,bn_acti=True)
 
-        self.aa_kernel_0 = ECA(self.in_channels[0])
-        self.aa_kernel_1 = ECA(self.in_channels[1])
-        self.aa_kernel_2 = ECA(self.in_channels[2])
-        self.aa_kernel_3 = ECA(self.in_channels[3])
+        self.aa_kernel_0 = PSA(self.in_channels[0])
+        self.aa_kernel_1 = PSA(self.in_channels[1])
+        self.aa_kernel_2 = PSA(self.in_channels[2])
+        self.aa_kernel_3 = PSA(self.in_channels[3])
 
     def forward(self, x):
         segout = self.backbone(x)
