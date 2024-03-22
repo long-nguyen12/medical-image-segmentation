@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-s")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-b")
     args = parser.parse_args()
 
     device = torch.device("cuda")
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         model = UNet(
             backbone=dict(
                 type="MSCAN",
-                depths=[2, 2, 4, 2],
+                # depths=[2, 2, 4, 2],
                 # depths=[3, 3, 12, 3],
                 # depths=[3, 5, 27, 3],
                 # drop_path_rate=0.1
@@ -187,7 +187,7 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mscan_s.pth",
+            pretrained="pretrained/mscan_b.pth",
         ).to(device)
         checkpoint = torch.load(
             f"snapshots/{args.train_save}/{_ds}/base.pth", map_location="cpu"
