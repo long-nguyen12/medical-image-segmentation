@@ -205,7 +205,7 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mscan_l.pth",
+            pretrained="pretrained/mscan_s.pth",
         ).cuda()
 
         # ---- flops and params ----
