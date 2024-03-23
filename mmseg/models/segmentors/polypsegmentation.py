@@ -43,10 +43,6 @@ class PolypSegmentation(nn.Module):
         self.CFP_1 = CFPModule(self.in_channels[1], d=8)
         self.CFP_2 = CFPModule(self.in_channels[2], d=8)
         self.CFP_3 = CFPModule(self.in_channels[3], d=8)
-        # self.CFP_0 = SGE()
-        # self.CFP_1 = SGE()
-        # self.CFP_2 = SGE()
-        # self.CFP_3 = SGE()
 
         ###### dilation rate 4, 62.8
 
@@ -110,10 +106,14 @@ class PolypSegmentation(nn.Module):
             self.in_channels[3] // 4, 1, 3, 1, padding=1, bn_acti=True
         )
 
-        self.aa_kernel_0 = ECA(self.in_channels[0])
-        self.aa_kernel_1 = ECA(self.in_channels[1])
-        self.aa_kernel_2 = ECA(self.in_channels[2])
-        self.aa_kernel_3 = ECA(self.in_channels[3])
+        # self.aa_kernel_0 = ECA(self.in_channels[0])
+        # self.aa_kernel_1 = ECA(self.in_channels[1])
+        # self.aa_kernel_2 = ECA(self.in_channels[2])
+        # self.aa_kernel_3 = ECA(self.in_channels[3])
+        self.aa_kernel_0 = SGE()
+        self.aa_kernel_1 = SGE()
+        self.aa_kernel_2 = SGE()
+        self.aa_kernel_3 = SGE()
 
     def forward(self, x):
         segout = self.backbone(x)

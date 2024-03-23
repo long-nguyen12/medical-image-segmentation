@@ -99,7 +99,6 @@ class FPABlock(nn.Module):
         self.mixer = ConvBnRelu(out_channels, out_channels, 1)
 
     def forward(self, x):
-        h, w = x.size(2), x.size(3)
         b1 = self.branch1(x)
 
         mid = self.conv0(x)
@@ -145,9 +144,7 @@ class MLPPanHead(BaseDecodeHead):
 
         for i, dim in enumerate(self.in_channels):
             # self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
-            # self.add_module(f"cbam_c{i+1}", CBAM(dim))
-            self.add_module(f"cbam_c{i+1}", SGE())
-
+            self.add_module(f"cbam_c{i+1}", CBAM(dim))
         self.dropout = nn.Dropout2d(0.1)
 
         self.apply(self._init_weights)
