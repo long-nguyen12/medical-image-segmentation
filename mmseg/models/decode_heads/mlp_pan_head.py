@@ -10,6 +10,7 @@ from ..segmentors.lib.cbam import CBAM
 from ..segmentors.lib.bam import BAMBlock as BAM
 from ..segmentors.lib.attentions import SGE
 
+
 class ConvBnRelu(nn.Module):
     def __init__(
         self,
@@ -73,7 +74,7 @@ class FPABlock(nn.Module):
         )
 
         # midddle branch
-        self.conv0 = ConvBnRelu(in_channels, out_channels, 1, 1, 0)
+        self.conv0 = nn.Conv2d(in_channels, out_channels, 1, 1, padding=0)
 
         self.conv13_0 = nn.Conv2d(
             out_channels, out_channels, (1, 3), padding=(0, 1), groups=out_channels
