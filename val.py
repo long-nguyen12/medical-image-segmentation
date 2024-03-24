@@ -132,7 +132,7 @@ def inference(model, data_path, args=None):
         gt = gt[0][0]
         gt = np.asarray(gt, np.float32)
         image = image.to(device)
-        res, _, _, _ = model(image)
+        res, _, _, _, _ = model(image)
         # pr = torch.sigmoid(res)
         # pr = (pr > 0.5).float()
         # gts.append(gt)

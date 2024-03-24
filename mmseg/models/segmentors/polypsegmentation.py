@@ -187,26 +187,26 @@ class PolypSegmentation(nn.Module):
         )
 
         # ------------------- atten-four -----------------------
-        # decoder_5 = F.interpolate(x_1, size=x1_size, mode="bicubic", align_corners=True)
-        # cfp_out_4 = self.CFP_0(x1)
-        # decoder_5_ra = -1 * (torch.sigmoid(decoder_5)) + 1
-        # aa_atten_0 = self.aa_kernel_0(cfp_out_4)
-        # aa_atten_0 += cfp_out_4
-        # aa_atten_0_o = decoder_5_ra.expand(-1, self.in_channels[0], -1, -1).mul(
-        #     aa_atten_0
-        # )
+        decoder_5 = F.interpolate(x_1, size=x1_size, mode="bicubic", align_corners=True)
+        cfp_out_4 = self.CFP_0(x1)
+        decoder_5_ra = -1 * (torch.sigmoid(decoder_5)) + 1
+        aa_atten_0 = self.aa_kernel_0(cfp_out_4)
+        aa_atten_0 += cfp_out_4
+        aa_atten_0_o = decoder_5_ra.expand(-1, self.in_channels[0], -1, -1).mul(
+            aa_atten_0
+        )
 
-        # ra_0 = self.ra0_conv1(aa_atten_0_o)
-        # ra_0 = self.ra0_conv2(ra_0)
-        # ra_0 = self.ra0_conv3(ra_0)
+        ra_0 = self.ra0_conv1(aa_atten_0_o)
+        ra_0 = self.ra0_conv2(ra_0)
+        ra_0 = self.ra0_conv3(ra_0)
 
-        # x_0 = ra_0 + decoder_5
-        # lateral_map_5 = F.interpolate(
-        #     x_0, size=x.shape[2:], mode="bicubic", align_corners=True
-        # )
+        x_0 = ra_0 + decoder_5
+        lateral_map_5 = F.interpolate(
+            x_0, size=x.shape[2:], mode="bicubic", align_corners=True
+        )
 
         return (
-            # lateral_map_5,
+            lateral_map_5,
             lateral_map_4,
             lateral_map_3,
             lateral_map_2,
