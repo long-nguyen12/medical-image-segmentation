@@ -52,14 +52,8 @@ class ConvBnRelu(nn.Module):
 
 
 class FPABlock(nn.Module):
-    def __init__(self, in_channels, out_channels, upscale_mode="bicubic"):
+    def __init__(self, in_channels, out_channels):
         super(FPABlock, self).__init__()
-
-        self.upscale_mode = upscale_mode
-        if self.upscale_mode == "bicubic":
-            self.align_corners = True
-        else:
-            self.align_corners = False
 
         # global pooling branch
         self.branch1 = nn.Sequential(
@@ -74,6 +68,7 @@ class FPABlock(nn.Module):
         )
 
         # midddle branch
+        # self.conv0 = ConvBnRelu(in_channels, out_channels, 1, 1, 0)
         self.conv0 = nn.Conv2d(in_channels, out_channels, 1, 1, padding=0)
 
         self.conv13_0 = nn.Conv2d(
@@ -142,11 +137,10 @@ class MLPPanHead(BaseDecodeHead):
         self.fpa = FPABlock(
             in_channels=sum(self.in_channels), out_channels=self.channels
         )
-
+        self.in_channels = self.in_channels[1:]
         for i, dim in enumerate(self.in_channels):
             # self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
             self.add_module(f"cbam_c{i+1}", CBAM(dim))
-        self.dropout = nn.Dropout2d(0.1)
 
         self.apply(self._init_weights)
 
@@ -177,5 +171,5 @@ class MLPPanHead(BaseDecodeHead):
             )
 
         seg = self.fpa(torch.cat(outs, dim=1))
-        output = self.cls_seg(self.dropout(seg))
+        output = self.cls_seg(seg)
         return output

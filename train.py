@@ -249,13 +249,13 @@ if __name__ == "__main__":
                     gts = Variable(gts).cuda()
 
                     # ---- forward ----
-                    map0, map4, map3, map2, map1 = model(images)
+                    map0, map3, map2, map1 = model(images)
                     loss = (
                         structure_loss(map1, gts)
                         + structure_loss(map0, gts)
                         + structure_loss(map2, gts)
                         + structure_loss(map3, gts)
-                        + structure_loss(map4, gts)
+                        # + structure_loss(map4, gts)
                     )
 
                     # ---- metrics ----
