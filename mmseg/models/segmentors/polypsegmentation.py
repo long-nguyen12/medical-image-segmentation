@@ -47,65 +47,81 @@ class PolypSegmentation(nn.Module):
 
         ###### dilation rate 4, 62.8
 
-        self.ra0_conv1 = Conv(
-            self.in_channels[0], self.in_channels[0] // 2, 3, 1, padding=1, bn_acti=True
-        )
-        self.ra0_conv2 = Conv(
-            self.in_channels[0] // 2,
-            self.in_channels[0] // 4,
-            3,
-            1,
-            padding=1,
-            bn_acti=True,
-        )
-        self.ra0_conv3 = Conv(
-            self.in_channels[0] // 4, 1, 3, 1, padding=1, bn_acti=True
-        )
+        # self.ra0_conv1 = Conv(
+        #     self.in_channels[0], self.in_channels[0] // 2, 3, 1, padding=1, bn_acti=True
+        # )
+        # self.ra0_conv2 = Conv(
+        #     self.in_channels[0] // 2,
+        #     self.in_channels[0] // 4,
+        #     3,
+        #     1,
+        #     padding=1,
+        #     bn_acti=True,
+        # )
+        # self.ra0_conv3 = Conv(
+        #     self.in_channels[0] // 4, 1, 3, 1, padding=1, bn_acti=True
+        # )
 
-        self.ra1_conv1 = Conv(
-            self.in_channels[1], self.in_channels[1] // 2, 3, 1, padding=1, bn_acti=True
-        )
-        self.ra1_conv2 = Conv(
-            self.in_channels[1] // 2,
-            self.in_channels[1] // 4,
-            3,
-            1,
-            padding=1,
-            bn_acti=True,
-        )
-        self.ra1_conv3 = Conv(
-            self.in_channels[1] // 4, 1, 3, 1, padding=1, bn_acti=True
-        )
+        # self.ra1_conv1 = Conv(
+        #     self.in_channels[1], self.in_channels[1] // 2, 3, 1, padding=1, bn_acti=True
+        # )
+        # self.ra1_conv2 = Conv(
+        #     self.in_channels[1] // 2,
+        #     self.in_channels[1] // 4,
+        #     3,
+        #     1,
+        #     padding=1,
+        #     bn_acti=True,
+        # )
+        # self.ra1_conv3 = Conv(
+        #     self.in_channels[1] // 4, 1, 3, 1, padding=1, bn_acti=True
+        # )
 
-        self.ra2_conv1 = Conv(
-            self.in_channels[2], self.in_channels[2] // 2, 3, 1, padding=1, bn_acti=True
-        )
-        self.ra2_conv2 = Conv(
-            self.in_channels[2] // 2,
-            self.in_channels[2] // 4,
-            3,
-            1,
-            padding=1,
-            bn_acti=True,
-        )
-        self.ra2_conv3 = Conv(
-            self.in_channels[2] // 4, 1, 3, 1, padding=1, bn_acti=True
-        )
+        # self.ra2_conv1 = Conv(
+        #     self.in_channels[2], self.in_channels[2] // 2, 3, 1, padding=1, bn_acti=True
+        # )
+        # self.ra2_conv2 = Conv(
+        #     self.in_channels[2] // 2,
+        #     self.in_channels[2] // 4,
+        #     3,
+        #     1,
+        #     padding=1,
+        #     bn_acti=True,
+        # )
+        # self.ra2_conv3 = Conv(
+        #     self.in_channels[2] // 4, 1, 3, 1, padding=1, bn_acti=True
+        # )
 
-        self.ra3_conv1 = Conv(
-            self.in_channels[3], self.in_channels[3] // 2, 3, 1, padding=1, bn_acti=True
-        )
-        self.ra3_conv2 = Conv(
-            self.in_channels[3] // 2,
-            self.in_channels[3] // 4,
-            3,
-            1,
-            padding=1,
-            bn_acti=True,
-        )
-        self.ra3_conv3 = Conv(
-            self.in_channels[3] // 4, 1, 3, 1, padding=1, bn_acti=True
-        )
+        # self.ra3_conv1 = Conv(
+        #     self.in_channels[3], self.in_channels[3] // 2, 3, 1, padding=1, bn_acti=True
+        # )
+        # self.ra3_conv2 = Conv(
+        #     self.in_channels[3] // 2,
+        #     self.in_channels[3] // 4,
+        #     3,
+        #     1,
+        #     padding=1,
+        #     bn_acti=True,
+        # )
+        # self.ra3_conv3 = Conv(
+        #     self.in_channels[3] // 4, 1, 3, 1, padding=1, bn_acti=True
+        # )
+
+        self.ra0_conv1 = Conv(self.in_channels[0], 32, 3, 1, padding=1, bn_acti=True)
+        self.ra0_conv2 = Conv(32, 32, 3, 1, padding=1, bn_acti=True)
+        self.ra0_conv3 = Conv(32, 1, 3, 1, padding=1, bn_acti=True)
+
+        self.ra1_conv1 = Conv(self.in_channels[1], 32, 3, 1, padding=1, bn_acti=True)
+        self.ra1_conv2 = Conv(32, 32, 3, 1, padding=1, bn_acti=True)
+        self.ra1_conv3 = Conv(32, 1, 3, 1, padding=1, bn_acti=True)
+
+        self.ra2_conv1 = Conv(self.in_channels[2], 32, 3, 1, padding=1, bn_acti=True)
+        self.ra2_conv2 = Conv(32, 32, 3, 1, padding=1, bn_acti=True)
+        self.ra2_conv3 = Conv(32, 1, 3, 1, padding=1, bn_acti=True)
+
+        self.ra3_conv1 = Conv(self.in_channels[3], 32, 3, 1, padding=1, bn_acti=True)
+        self.ra3_conv2 = Conv(32, 32, 3, 1, padding=1, bn_acti=True)
+        self.ra3_conv3 = Conv(32, 1, 3, 1, padding=1, bn_acti=True)
 
         self.aa_kernel_0 = ECA(self.in_channels[0])
         self.aa_kernel_1 = ECA(self.in_channels[1])

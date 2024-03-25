@@ -159,7 +159,6 @@ class MLPPanHead(BaseDecodeHead):
                 m.bias.data.zero_()
 
     def forward(self, features):
-        features = features
         B, _, H, W = features[0].shape
         outs = []
 
