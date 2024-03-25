@@ -285,6 +285,9 @@ if __name__ == "__main__":
 
             if epoch % 5 == 0:
                 mean_iou, mean_dice, mean_precision, mean_recall = inference(
+                    model, f"{args.train_path}/{_ds}/validation/"
+                )
+                mean_iou, mean_dice, mean_precision, mean_recall = inference(
                     model, f"{args.train_path}/{_ds}/test/"
                 )
                 if mean_iou > best_iou:
