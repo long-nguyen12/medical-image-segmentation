@@ -150,12 +150,12 @@ if __name__ == "__main__":
     parser.add_argument("--backbone", type=str, default="b3")
     parser.add_argument("--weight", type=str, default="")
     parser.add_argument(
-        "--test_path", type=str, default="./data/dataset", help="path to dataset"
+        "--test_path", type=str, default="./data/Datasets", help="path to dataset"
     )
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-b")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-b-duckds")
     args = parser.parse_args()
 
     device = torch.device("cuda")

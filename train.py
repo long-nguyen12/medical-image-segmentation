@@ -115,10 +115,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train_path",
         type=str,
-        default="./data/dataset/",
+        default="./data/Datasets/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-b")
+    parser.add_argument("--train_save", type=str, default="polyp-seg-b-duckds")
     args = parser.parse_args()
 
     epochs = args.num_epochs
