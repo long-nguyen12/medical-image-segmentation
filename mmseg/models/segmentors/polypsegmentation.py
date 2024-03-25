@@ -7,7 +7,7 @@ from ..builder import SEGMENTORS
 
 from .lib.conv_layer import Conv, BNPReLU
 from .lib.axial_atten import AA_kernel, PSA
-from .lib.attentions import SGE, ECA
+from .lib.attentions import SGE, ECA, SEAttention
 from .lib.context_module import CFPModule
 from .lib.cbam import CBAM
 

@@ -16,7 +16,6 @@ class SGE(nn.Module):
         self.sig = nn.Sigmoid()
 
     def forward(self, x):  # (b, c, h, w)
-        skip = x.clone()
         b, c, h, w = x.size()
         x = x.view(b * self.groups, -1, h, w)
 
@@ -34,7 +33,7 @@ class SGE(nn.Module):
 
         x = x * self.sig(t)
         x = x.view(b, c, h, w)
-        return x + skip
+        return x
 
 
 class SEAttention(nn.Module):
@@ -123,7 +122,7 @@ class ECA(nn.Module):
         y = self.sigmoid(y)
         feat = x * y.expand_as(x)
 
-        return x + feat
+        return feat
 
 
 class MS_CAM(nn.Module):
