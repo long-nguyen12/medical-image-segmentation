@@ -8,7 +8,7 @@ import torch
 from albumentations.pytorch import ToTensorV2
 
 from mmseg import __version__
-from mmseg.models.segmentors import PolypSegmentation as UNet
+from mmseg.models.segmentors import ColonFormer as UNet
 from eval_func import Fmeasure_calu, StructureMeasure, EnhancedMeasure
 
 
