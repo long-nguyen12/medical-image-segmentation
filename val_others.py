@@ -165,7 +165,7 @@ if __name__ == "__main__":
                 # drop_path_rate=0.1
             ),
             decode_head=dict(
-                type="MLPPanHead",
+                type="UPerHead",
                 in_channels=[64, 128, 320, 512],
                 in_index=[0, 1, 2, 3],
                 channels=128,
