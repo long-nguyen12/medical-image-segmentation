@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-b-duckds")
+    parser.add_argument("--train_save", type=str, default="polyp-b-duckds")
     args = parser.parse_args()
 
     device = torch.device("cuda")

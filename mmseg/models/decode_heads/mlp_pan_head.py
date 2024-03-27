@@ -7,9 +7,6 @@ from torch import Tensor
 from ..builder import HEADS
 from .decode_head import BaseDecodeHead
 from ..segmentors.lib.cbam import CBAM
-from ..segmentors.lib.bam import BAMBlock as BAM
-from ..segmentors.lib.attentions import SGE
-
 
 class ConvBnRelu(nn.Module):
     def __init__(
@@ -138,7 +135,6 @@ class MLPPanHead(BaseDecodeHead):
             in_channels=sum(self.in_channels), out_channels=self.channels
         )
         for i, dim in enumerate(self.in_channels):
-            # self.add_module(f"linear_c{i+1}", MLP(dim, self.channels))
             self.add_module(f"cbam_c{i+1}", CBAM(dim))
 
         self.apply(self._init_weights)
@@ -164,7 +160,6 @@ class MLPPanHead(BaseDecodeHead):
 
         for i, cf in enumerate(features):
             cf = eval(f"self.cbam_c{i+1}")(cf)
-            # cf = eval(f"self.linear_c{i+1}")(cf).permute(0, 2, 1).reshape(B, -1, *cf.shape[-2:])
             outs.append(
                 F.interpolate(cf, size=(H, W), mode="bicubic", align_corners=True)
             )

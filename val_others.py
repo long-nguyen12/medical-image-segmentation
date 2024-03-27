@@ -144,12 +144,12 @@ if __name__ == "__main__":
     parser.add_argument("--backbone", type=str, default="b3")
     parser.add_argument("--weight", type=str, default="")
     parser.add_argument(
-        "--test_path", type=str, default="./data/dataset", help="path to dataset"
+        "--test_path", type=str, default="./data/Datasets", help="path to dataset"
     )
     parser.add_argument(
         "--init_trainsize", type=str, default=352, help="path to dataset"
     )
-    parser.add_argument("--train_save", type=str, default="mit_b3")
+    parser.add_argument("--train_save", type=str, default="Colon-S")
     args = parser.parse_args()
 
     device = torch.device("cuda")
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     for _ds in ds:
         model = UNet(
             backbone=dict(
-                type="mit_b3",
+                type="mit_b2",
                 # embed_dims=[64, 128, 320, 512],
                 # depths=[3, 3, 12, 3],
                 # depths=[3, 5, 27, 3],
@@ -181,7 +181,7 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mit_b3.pth",
+            pretrained="pretrained/mit_b2.pth",
         ).to(device)
         checkpoint = torch.load(
             f"snapshots/{args.train_save}/{_ds}/base.pth", map_location="cpu"

@@ -118,7 +118,7 @@ if __name__ == "__main__":
         default="./data/Datasets/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="polyp-seg-b-duckds")
+    parser.add_argument("--train_save", type=str, default="polyp-l-duckds")
     args = parser.parse_args()
 
     epochs = args.num_epochs
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             backbone=dict(
                 type="MSCAN",
                 # depths=[2, 2, 4, 2],
-                # depths=[3, 5, 27, 3],
+                depths=[3, 5, 27, 3],
                 # depths=[3, 3, 12, 3],
                 # drop_path_rate=0.1
             ),
@@ -206,7 +206,7 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mscan_b.pth",
+            pretrained="pretrained/mscan_l.pth",
         ).cuda()
 
         # ---- flops and params ----
@@ -214,15 +214,15 @@ if __name__ == "__main__":
         optimizer = torch.optim.AdamW(
             params, args.init_lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01
         )
-        # lr_scheduler = WarmupPolyLR(
-        #     optimizer, 0.6, epochs * _total_step, _total_step * 10, 0.01
-        # )
-        # optimizer = torch.optim.Adam(params, args.init_lr)
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer,
-            T_max=len(train_loader) * epochs,
-            eta_min=args.init_lr / 1000,
+        lr_scheduler = WarmupPolyLR(
+            optimizer, 0.6, epochs * _total_step, _total_step, 0.01
         )
+        # optimizer = torch.optim.Adam(params, args.init_lr)
+        # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer,
+        #     T_max=len(train_loader) * epochs,
+        #     eta_min=args.init_lr / 1000,
+        # )
 
         start_epoch = 1
 
@@ -283,27 +283,15 @@ if __name__ == "__main__":
                     )
                 )
 
-            if epoch % 5 == 0:
-                mean_iou, mean_dice, mean_precision, mean_recall = inference(
-                    model, f"{args.train_path}/{_ds}/validation/"
-                )
-                mean_iou, mean_dice, mean_precision, mean_recall = inference(
-                    model, f"{args.train_path}/{_ds}/test/"
-                )
-                if mean_iou > best_iou:
-                    best_iou = mean_iou
-                    ckpt_path = save_path + "base.pth"
-                    print("[Saving Checkpoint:]", ckpt_path)
-                    checkpoint = {
-                        "epoch": epoch + 1,
-                        "state_dict": model.state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "scheduler": lr_scheduler.state_dict(),
-                    }
-                    torch.save(checkpoint, ckpt_path)
-
-            if epoch == epochs:
-                ckpt_path = save_path + "last.pth"
+            mean_iou, mean_dice, mean_precision, mean_recall = inference(
+                model, f"{args.train_path}/{_ds}/validation/"
+            )
+            mean_iou, mean_dice, mean_precision, mean_recall = inference(
+                model, f"{args.train_path}/{_ds}/test/"
+            )
+            if mean_iou > best_iou:
+                best_iou = mean_iou
+                ckpt_path = save_path + "base.pth"
                 print("[Saving Checkpoint:]", ckpt_path)
                 checkpoint = {
                     "epoch": epoch + 1,
@@ -312,3 +300,14 @@ if __name__ == "__main__":
                     "scheduler": lr_scheduler.state_dict(),
                 }
                 torch.save(checkpoint, ckpt_path)
+
+            # if epoch == epochs:
+            #     ckpt_path = save_path + "last.pth"
+            #     print("[Saving Checkpoint:]", ckpt_path)
+            #     checkpoint = {
+            #         "epoch": epoch + 1,
+            #         "state_dict": model.state_dict(),
+            #         "optimizer": optimizer.state_dict(),
+            #         "scheduler": lr_scheduler.state_dict(),
+            #     }
+            #     torch.save(checkpoint, ckpt_path)
