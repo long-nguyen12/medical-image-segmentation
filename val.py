@@ -10,6 +10,13 @@ from albumentations.pytorch import ToTensorV2
 from mmseg import __version__
 from mmseg.models.segmentors import PolypSegmentation as UNet
 from eval_func import Fmeasure_calu, StructureMeasure, EnhancedMeasure
+from sklearn.metrics import (
+    jaccard_score,
+    precision_score,
+    recall_score,
+    accuracy_score,
+    f1_score,
+)
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -84,8 +91,7 @@ def get_scores(gts, prs):
     mean_dice = 0
     s_measure = 0
     e_measure = 0
-    f_measure = []
-    threshold = []
+    jac_score = 0
     for gt, pr in zip(gts, prs):
         mean_precision += precision_np(gt, pr)
         mean_recall += recall_np(gt, pr)
@@ -93,13 +99,18 @@ def get_scores(gts, prs):
         mean_dice += dice_np(gt, pr)
         s_measure += StructureMeasure(pr, gt)
         e_measure += EnhancedMeasure(pr, gt)
+        jac_score += jaccard_score(np.ndarray.flatten(np.array(gt, dtype=bool)),
+                           np.ndarray.flatten(np.array(pr > 0.5)))
     mean_precision /= len(gts)
     mean_recall /= len(gts)
     mean_iou /= len(gts)
     mean_dice /= len(gts)
     s_measure /= len(gts)
     e_measure /= len(gts)
-
+    jac_score /= len(gts)
+    # miou_train = jaccard_score(np.ndarray.flatten(np.array(gts)),
+    #                        np.ndarray.flatten(np.array(prs)))
+    print(jac_score)
     print(
         "scores: dice={}, miou={}, precision={}, recall={}, s_measure={}, e_measure={}".format(
             mean_dice, mean_iou, mean_precision, mean_recall, s_measure, e_measure
@@ -114,7 +125,7 @@ def inference(model, data_path, args=None):
     print("#" * 20)
     torch.cuda.empty_cache()
     model.eval()
-    device = torch.device("cuda")
+    device = torch.device("cpu")
     X_test = glob("{}/images/*".format(data_path))
     X_test.sort()
     y_test = glob("{}/masks/*".format(data_path))
@@ -158,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_save", type=str, default="polyp-b-duckds")
     args = parser.parse_args()
 
-    device = torch.device("cuda")
+    device = torch.device("cpu")
 
     ds = ["CVC-ClinicDB", "CVC-ColonDB", "ETIS-LaribPolypDB", "Kvasir-SEG"]
     for _ds in ds:
