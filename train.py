@@ -118,7 +118,7 @@ if __name__ == "__main__":
         default="./data/Datasets/",
         help="path to train dataset",
     )
-    parser.add_argument("--train_save", type=str, default="polyp-l-duckds")
+    parser.add_argument("--train_save", type=str, default="polyp-b-duckds")
     args = parser.parse_args()
 
     epochs = args.num_epochs
@@ -206,7 +206,7 @@ if __name__ == "__main__":
             auxiliary_head=None,
             train_cfg=dict(),
             test_cfg=dict(mode="whole"),
-            pretrained="pretrained/mscan_l.pth",
+            pretrained="pretrained/mscan_b.pth",
         ).cuda()
 
         # ---- flops and params ----
@@ -283,7 +283,7 @@ if __name__ == "__main__":
                     )
                 )
 
-            mean_iou, mean_dice, mean_precision, mean_recall = inference(
+            _, _, _, _ = inference(
                 model, f"{args.train_path}/{_ds}/validation/"
             )
             mean_iou, mean_dice, mean_precision, mean_recall = inference(
@@ -300,14 +300,3 @@ if __name__ == "__main__":
                     "scheduler": lr_scheduler.state_dict(),
                 }
                 torch.save(checkpoint, ckpt_path)
-
-            # if epoch == epochs:
-            #     ckpt_path = save_path + "last.pth"
-            #     print("[Saving Checkpoint:]", ckpt_path)
-            #     checkpoint = {
-            #         "epoch": epoch + 1,
-            #         "state_dict": model.state_dict(),
-            #         "optimizer": optimizer.state_dict(),
-            #         "scheduler": lr_scheduler.state_dict(),
-            #     }
-            #     torch.save(checkpoint, ckpt_path)
