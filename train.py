@@ -185,7 +185,7 @@ if __name__ == "__main__":
             backbone=dict(
                 type="MSCAN",
                 # depths=[2, 2, 4, 2],
-                depths=[3, 5, 27, 3],
+                # depths=[3, 5, 27, 3],
                 # depths=[3, 3, 12, 3],
                 # drop_path_rate=0.1
             ),
